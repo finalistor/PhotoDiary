@@ -15,12 +15,9 @@
 
 ## 截图
 
-> 将截图放入 `screenshots/` 目录后在此处引用：
-> ```
-> ![](screenshots/timeline.png)
-> ![](screenshots/editor.png)
-> ![](screenshots/photowall.png)
-> ```
+![](screenshots/01_timeline.png)
+![](screenshots/02_editor.png)
+![](screenshots/03_photowall.png)
 
 ## 下载
 
