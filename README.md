@@ -21,7 +21,7 @@
 
 ## 下载
 
-前往 [Releases](https://github.com/yoursluo/PhotoDiary/releases) 页面下载最新 APK。
+前往 [Releases](https://github.com/finalistor/PhotoDiary/releases) 页面下载最新 APK。
 
 ## 技术栈
 

@@ -28,4 +28,4 @@
 - 主题切换：浅色/深色/跟随系统，Terracotta 暖色调
 - Sentry 崩溃上报（release 版本）
 
-[1.0]: https://github.com/user/photodiary/releases/tag/v1.0
+[1.0]: https://github.com/finalistor/PhotoDiary/releases/tag/v1.0
