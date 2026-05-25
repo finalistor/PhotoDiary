@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.photodiary.data.local.UserPreferences
 import com.photodiary.domain.model.presetTagDefs
 import com.photodiary.domain.repository.DiaryRepository
+import java.time.Instant
+import java.time.ZoneId
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -77,7 +79,28 @@ class CreateEditEntryViewModel(
                     )
                 }
             }
+        } else {
+            viewModelScope.launch {
+                val date = initialDate ?: System.currentTimeMillis()
+                val dateTitle = formatDateTitle(date)
+                val existingTitles = repository.getAllEntries().first().map { it.title }
+                _uiState.value = _uiState.value.copy(title = computeNextTitle(dateTitle, existingTitles))
+            }
         }
+    }
+
+    private fun formatDateTitle(epochMillis: Long): String {
+        val zdt = Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault())
+        return "${zdt.year}年${zdt.monthValue}月${zdt.dayOfMonth}日"
+    }
+
+    private fun computeNextTitle(baseTitle: String, existingTitles: List<String>): String {
+        if (baseTitle !in existingTitles) return baseTitle
+        val pattern = Regex("^${Regex.escape(baseTitle)}（(\\d+)）$")
+        val maxSuffix = existingTitles.mapNotNull { title ->
+            pattern.matchEntire(title)?.groupValues?.get(1)?.toIntOrNull()
+        }.maxOrNull() ?: 0
+        return "$baseTitle（${maxSuffix + 1}）"
     }
 
     fun discard() {
