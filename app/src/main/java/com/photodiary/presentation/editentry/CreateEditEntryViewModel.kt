@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.photodiary.data.local.UserPreferences
 import com.photodiary.domain.model.presetTagDefs
+import com.photodiary.domain.repository.DateConflictException
 import com.photodiary.domain.repository.DiaryRepository
 import java.time.Instant
 import java.time.ZoneId
@@ -35,6 +36,14 @@ data class CreateEditEntryUiState(
 sealed class CreateEditEntryEvent {
     data class NavigateBack(val saved: Boolean) : CreateEditEntryEvent()
     data class ShowError(val message: String) : CreateEditEntryEvent()
+    data class DateConflictRedirect(
+        val targetEntryId: Long,
+        val targetEntryTitle: String,
+        val hasUnsavedChanges: Boolean,
+        val navigateToEdit: Boolean = false
+    ) : CreateEditEntryEvent()
+    data class NavigateToEntry(val entryId: Long) : CreateEditEntryEvent()
+    data class NavigateToEditEntry(val entryId: Long) : CreateEditEntryEvent()
 }
 
 class CreateEditEntryViewModel(
@@ -53,6 +62,10 @@ class CreateEditEntryViewModel(
     val events = _events.receiveAsFlow()
 
     private var initialPhotoFileNames: Set<String> = emptySet()
+    private var initialTitle: String = ""
+    private var initialContent: String = ""
+    private var initialTags: List<String> = emptyList()
+    private var initialCreatedAt: Long = 0L
 
     init {
         viewModelScope.launch {
@@ -68,6 +81,10 @@ class CreateEditEntryViewModel(
                     val names = it.photos.map { p -> p.fileName }
                     val paths = it.photos.map { p -> p.filePath }
                     initialPhotoFileNames = names.toSet()
+                    initialTitle = it.title
+                    initialContent = it.content
+                    initialTags = it.tags
+                    initialCreatedAt = it.createdAt
                     _uiState.value = _uiState.value.copy(
                         title = it.title,
                         content = it.content,
@@ -82,9 +99,18 @@ class CreateEditEntryViewModel(
         } else {
             viewModelScope.launch {
                 val date = initialDate ?: System.currentTimeMillis()
-                val dateTitle = formatDateTitle(date)
-                val existingTitles = repository.getAllEntries().first().map { it.title }
-                _uiState.value = _uiState.value.copy(title = computeNextTitle(dateTitle, existingTitles))
+                _uiState.value = _uiState.value.copy(title = formatDateTitle(date))
+                val existingEntry = repository.getEntryByDate(date)
+                if (existingEntry != null) {
+                    _events.send(
+                        CreateEditEntryEvent.DateConflictRedirect(
+                            targetEntryId = existingEntry.id,
+                            targetEntryTitle = existingEntry.title.ifEmpty { "无标题" },
+                            hasUnsavedChanges = false,
+                            navigateToEdit = initialDate == null // FAB → edit, calendar click → view
+                        )
+                    )
+                }
             }
         }
     }
@@ -92,15 +118,6 @@ class CreateEditEntryViewModel(
     private fun formatDateTitle(epochMillis: Long): String {
         val zdt = Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault())
         return "${zdt.year}年${zdt.monthValue}月${zdt.dayOfMonth}日"
-    }
-
-    private fun computeNextTitle(baseTitle: String, existingTitles: List<String>): String {
-        if (baseTitle !in existingTitles) return baseTitle
-        val pattern = Regex("^${Regex.escape(baseTitle)}（(\\d+)）$")
-        val maxSuffix = existingTitles.mapNotNull { title ->
-            pattern.matchEntire(title)?.groupValues?.get(1)?.toIntOrNull()
-        }.maxOrNull() ?: 0
-        return "$baseTitle（${maxSuffix + 1}）"
     }
 
     fun discard() {
@@ -169,10 +186,65 @@ class CreateEditEntryViewModel(
     }
 
     fun updateCreatedAt(date: Long) {
-        _uiState.value = _uiState.value.copy(originalCreatedAt = date)
+        viewModelScope.launch {
+            val existingEntry = repository.getEntryByDate(date)
+            if (existingEntry != null && existingEntry.id != (entryId ?: 0)) {
+                _events.send(
+                    CreateEditEntryEvent.DateConflictRedirect(
+                        targetEntryId = existingEntry.id,
+                        targetEntryTitle = existingEntry.title.ifEmpty { "无标题" },
+                        hasUnsavedChanges = hasUnsavedChanges()
+                    )
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(originalCreatedAt = date)
+            }
+        }
+    }
+
+    private fun hasUnsavedChanges(): Boolean {
+        val state = _uiState.value
+        if (state.isEditing) {
+            return state.title != initialTitle ||
+                state.content != initialContent ||
+                state.tags != initialTags ||
+                state.originalCreatedAt != initialCreatedAt ||
+                state.photoFileNames.toSet() != initialPhotoFileNames
+        }
+        // New entry: has changes if anything was entered
+        return state.title.isNotBlank() || state.content.isNotBlank() ||
+            state.photoFileNames.isNotEmpty() || state.tags.isNotEmpty()
+    }
+
+    fun saveAndNavigateToEntry(targetEntryId: Long) {
+        performSave { _events.send(CreateEditEntryEvent.NavigateToEntry(targetEntryId)) }
+    }
+
+    fun discardAndNavigateToEntry(targetEntryId: Long) {
+        discardAndEmit(CreateEditEntryEvent.NavigateToEntry(targetEntryId))
+    }
+
+    fun discardAndNavigateToEditEntry(targetEntryId: Long) {
+        discardAndEmit(CreateEditEntryEvent.NavigateToEditEntry(targetEntryId))
+    }
+
+    private fun discardAndEmit(event: CreateEditEntryEvent) {
+        viewModelScope.launch {
+            _uiState.value.photoFileNames.forEach { fileName ->
+                if (fileName !in initialPhotoFileNames) {
+                    val file = java.io.File(repository.resolvePhotoPath(fileName))
+                    if (file.exists()) file.delete()
+                }
+            }
+            _events.send(event)
+        }
     }
 
     fun save() {
+        performSave { _events.send(CreateEditEntryEvent.NavigateBack(saved = true)) }
+    }
+
+    private fun performSave(onSuccess: suspend () -> Unit) {
         val state = _uiState.value
         if (state.title.isBlank() && state.content.isBlank()) {
             viewModelScope.launch {
@@ -191,7 +263,6 @@ class CreateEditEntryViewModel(
                         .forEach { up.addCustomTag(it) }
                 }
                 if (state.isEditing && entryId != null) {
-                    // Only use updateEntryWithPhotos if photos actually changed
                     val photosChanged = state.photoFileNames.toSet() != initialPhotoFileNames
                     if (photosChanged) {
                         repository.updateEntryWithPhotos(
@@ -220,7 +291,10 @@ class CreateEditEntryViewModel(
                         tags = state.tags, createdAt = state.originalCreatedAt
                     )
                 }
-                _events.send(CreateEditEntryEvent.NavigateBack(saved = true))
+                onSuccess()
+            } catch (e: DateConflictException) {
+                _uiState.value = _uiState.value.copy(isSaving = false)
+                _events.send(CreateEditEntryEvent.ShowError(e.message ?: "该日期已有日记"))
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isSaving = false)
                 _events.send(CreateEditEntryEvent.ShowError("保存失败: ${e.message}"))

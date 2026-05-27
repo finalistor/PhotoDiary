@@ -9,12 +9,15 @@ import com.photodiary.data.local.entity.EntryWithPhotos
 import com.photodiary.data.local.entity.PhotoEntity
 import com.photodiary.domain.model.DiaryEntry
 import com.photodiary.domain.model.Photo
+import com.photodiary.domain.repository.DateConflictException
 import com.photodiary.domain.repository.DiaryRepository
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.map
 import java.io.File
+import java.time.Instant
+import java.time.ZoneId
 import java.util.UUID
 
 class DiaryRepositoryImpl(
@@ -58,6 +61,10 @@ class DiaryRepositoryImpl(
         tags: List<String>,
         createdAt: Long
     ): Long {
+        val entryDate = normalizeToLocalMidnight(createdAt)
+        if (diaryEntryDao.entryExistsForDate(entryDate)) {
+            throw DateConflictException("该日期已有日记")
+        }
         val now = System.currentTimeMillis()
         val entryId = diaryEntryDao.insertEntry(
             DiaryEntryEntity(
@@ -65,6 +72,7 @@ class DiaryRepositoryImpl(
                 content = content,
                 createdAt = createdAt,
                 updatedAt = now,
+                entryDate = entryDate,
                 tags = tags
             )
         )
@@ -91,6 +99,7 @@ class DiaryRepositoryImpl(
                 content = entry.content,
                 createdAt = entry.createdAt,
                 updatedAt = System.currentTimeMillis(),
+                entryDate = normalizeToLocalMidnight(entry.createdAt),
                 tags = entry.tags
             )
         )
@@ -104,6 +113,10 @@ class DiaryRepositoryImpl(
         photoFileNames: List<String>,
         tags: List<String>
     ) {
+        val entryDate = normalizeToLocalMidnight(createdAt)
+        if (diaryEntryDao.entryExistsForDate(entryDate, excludeId = entryId)) {
+            throw DateConflictException("该日期已有日记")
+        }
         val oldPhotos = photoDao.getPhotosForEntry(entryId)
         val oldFileNames = oldPhotos.map { it.fileName }.toSet()
         val newFileNames = photoFileNames.toSet()
@@ -127,6 +140,7 @@ class DiaryRepositoryImpl(
                 content = content,
                 createdAt = createdAt,
                 updatedAt = System.currentTimeMillis(),
+                entryDate = entryDate,
                 tags = tags
             )
         )
@@ -189,8 +203,24 @@ class DiaryRepositoryImpl(
             content = entry.content,
             createdAt = entry.createdAt,
             updatedAt = entry.updatedAt,
+            entryDate = entry.entryDate,
             photos = mappedPhotos,
             tags = entry.tags
         )
+    }
+
+    override suspend fun entryExistsForDate(date: Long, excludeId: Long): Boolean {
+        return diaryEntryDao.entryExistsForDate(date, excludeId)
+    }
+
+    override suspend fun getEntryByDate(date: Long): DiaryEntry? {
+        val entryDate = normalizeToLocalMidnight(date)
+        return diaryEntryDao.getEntriesWithPhotosByDate(entryDate)
+            .firstOrNull()?.toDomainModel()
+    }
+
+    private fun normalizeToLocalMidnight(epochMillis: Long): Long {
+        val zdt = Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault())
+        return zdt.toLocalDate().atStartOfDay(zdt.zone).toInstant().toEpochMilli()
     }
 }

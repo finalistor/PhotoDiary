@@ -95,7 +95,6 @@ import com.photodiary.domain.model.buildTagColorMap
 import com.photodiary.domain.model.tagColor
 import com.photodiary.domain.repository.DiaryRepository
 import com.photodiary.presentation.components.DayCell
-import com.photodiary.presentation.components.EntryPickerDialog
 import com.photodiary.presentation.components.RecentEntryCard
 import com.photodiary.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
@@ -111,11 +110,11 @@ import java.util.Locale
 fun TimelineScreen(
     repository: DiaryRepository,
     userPreferences: UserPreferences,
-    onNavigateToCreate: () -> Unit,
     onNavigateToCreateWithDate: (Long) -> Unit,
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToPhotoWall: () -> Unit,
     onNavigateToTagManagement: () -> Unit = {},
+    onNavigateToCalendarPicker: () -> Unit = {},
     viewModel: TimelineViewModel = viewModel(factory = TimelineViewModel.Factory(repository))
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -124,7 +123,6 @@ fun TimelineScreen(
     val tagColorMap = remember(customTagNames) { buildTagColorMap(customTagNames) }
     val coroutineScope = rememberCoroutineScope()
     val pullToRefreshState = rememberPullToRefreshState()
-    var entryPickerDay by remember { mutableStateOf<CalendarDay?>(null) }
     var showAboutDialog by remember { mutableStateOf(false) }
 
     if (pullToRefreshState.isRefreshing) {
@@ -249,7 +247,7 @@ fun TimelineScreen(
                 exit = slideOutVertically(tween(200)) { it } + fadeOut(tween(100))
             ) {
                 FloatingActionButton(
-                    onClick = onNavigateToCreate,
+                    onClick = onNavigateToCalendarPicker,
                     shape = CircleShape,
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -323,13 +321,12 @@ fun TimelineScreen(
                                 onPreviousMonth = { viewModel.goToPreviousMonth() },
                                 onNextMonth = { viewModel.goToNextMonth() },
                                 onDayClick = { day ->
-                                    when {
-                                        day.entryIds.size > 1 -> entryPickerDay = day
-                                        day.entryIds.size == 1 -> onNavigateToDetail(day.entryIds.first())
-                                        else -> {
-                                            val epoch = day.date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                                            onNavigateToCreateWithDate(epoch)
-                                        }
+                                    val entryId = day.firstEntryId
+                                    if (entryId != null) {
+                                        onNavigateToDetail(entryId)
+                                    } else {
+                                        val epoch = day.date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                                        onNavigateToCreateWithDate(epoch)
                                     }
                                 }
                             )
@@ -379,19 +376,6 @@ fun TimelineScreen(
                 }
             }
         }
-    }
-
-    entryPickerDay?.let { day ->
-        EntryPickerDialog(
-            date = day.date,
-            entryIds = day.entryIds,
-            entryTitles = day.entryTitles,
-            onDismiss = { entryPickerDay = null },
-            onEntrySelected = { entryId ->
-                entryPickerDay = null
-                onNavigateToDetail(entryId)
-            }
-        )
     }
 
     if (showAboutDialog) {

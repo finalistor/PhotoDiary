@@ -51,6 +51,10 @@
 
 本应用所有数据（日记、照片）均存储在设备本地，不会上传到任何服务器。详见[隐私政策](PRIVACY_POLICY.md)。
 
+## 更新日志
+
+详见 [CHANGELOG.md](CHANGELOG.md)。
+
 ## 许可
 
 [MIT](LICENSE)

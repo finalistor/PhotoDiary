@@ -17,7 +17,10 @@ sealed class Screen(val route: String) {
     object PhotoViewer : Screen("photo_viewer/{entryId}/{photoIndex}") {
         fun createRoute(entryId: Long, photoIndex: Int) = "photo_viewer/$entryId/$photoIndex"
     }
-    object Calendar : Screen("calendar")
+    object Calendar : Screen("calendar?pickerMode={pickerMode}") {
+        fun createRoute(pickerMode: Boolean = false) =
+            if (pickerMode) "calendar?pickerMode=true" else "calendar"
+    }
     object PhotoWall : Screen("photo_wall")
     object TagManagement : Screen("tag_management")
     object TagFilter : Screen("tag_filter?tag={tag}") {

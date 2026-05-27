@@ -28,4 +28,8 @@ interface DiaryRepository {
     suspend fun deleteEntry(entryId: Long): Unit
     fun resolvePhotoPath(fileName: String): String
     suspend fun savePhoto(uri: Uri): String
+    suspend fun entryExistsForDate(date: Long, excludeId: Long = 0): Boolean
+    suspend fun getEntryByDate(date: Long): DiaryEntry?
 }
+
+class DateConflictException(message: String) : Exception(message)

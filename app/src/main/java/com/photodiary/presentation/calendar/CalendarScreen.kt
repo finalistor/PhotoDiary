@@ -46,7 +46,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.photodiary.domain.model.CalendarDay
 import com.photodiary.domain.repository.DiaryRepository
 import com.photodiary.presentation.components.DayCell
-import com.photodiary.presentation.components.EntryPickerDialog
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -57,10 +56,11 @@ fun CalendarScreen(
     onNavigateBack: () -> Unit,
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToCreateWithDate: (Long) -> Unit,
+    onNavigateToEdit: (Long) -> Unit = {},
+    pickerMode: Boolean = false,
     viewModel: CalendarViewModel = viewModel(factory = CalendarViewModel.Factory(repository))
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var entryPickerDay by remember { mutableStateOf<CalendarDay?>(null) }
 
     val dayOfWeekLabels = remember {
         listOf(
@@ -79,7 +79,7 @@ fun CalendarScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "${uiState.currentMonth.year}年${uiState.currentMonth.monthValue}月",
+                        if (pickerMode) "选择日期" else "${uiState.currentMonth.year}年${uiState.currentMonth.monthValue}月",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -167,13 +167,13 @@ fun CalendarScreen(
                                                 day = day,
                                                 compact = false,
                                                 onClick = { clicked ->
-                                                    when {
-                                                        clicked.entryIds.size > 1 -> entryPickerDay = clicked
-                                                        clicked.entryIds.size == 1 -> onNavigateToDetail(clicked.entryIds.first())
-                                                        else -> {
-                                                            val epoch = clicked.date.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
-                                                            onNavigateToCreateWithDate(epoch)
-                                                        }
+                                                    val entryId = clicked.firstEntryId
+                                                    if (entryId != null) {
+                                                        if (pickerMode) onNavigateToEdit(entryId)
+                                                        else onNavigateToDetail(entryId)
+                                                    } else {
+                                                        val epoch = clicked.date.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                                                        onNavigateToCreateWithDate(epoch)
                                                     }
                                                 },
                                                 modifier = Modifier.weight(1f)
@@ -193,16 +193,4 @@ fun CalendarScreen(
         }
     }
 
-    entryPickerDay?.let { day ->
-        EntryPickerDialog(
-            date = day.date,
-            entryIds = day.entryIds,
-            entryTitles = day.entryTitles,
-            onDismiss = { entryPickerDay = null },
-            onEntrySelected = { entryId ->
-                entryPickerDay = null
-                onNavigateToDetail(entryId)
-            }
-        )
-    }
 }

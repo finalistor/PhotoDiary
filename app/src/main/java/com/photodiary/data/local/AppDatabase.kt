@@ -12,7 +12,7 @@ import com.photodiary.data.local.entity.PhotoEntity
 
 @Database(
     entities = [DiaryEntryEntity::class, PhotoEntity::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(TagsConverter::class)
@@ -60,6 +60,14 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 db.execSQL("DROP TABLE diary_entries")
                 db.execSQL("ALTER TABLE diary_entries_new RENAME TO diary_entries")
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE diary_entries ADD COLUMN entry_date INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE diary_entries SET entry_date = created_at WHERE entry_date = 0")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_diary_entries_entry_date ON diary_entries(entry_date)")
             }
         }
     }

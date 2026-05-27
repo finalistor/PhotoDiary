@@ -50,13 +50,10 @@ class TodayWidgetProvider : AppWidgetProvider() {
 
         val todayStart = java.time.LocalDate.now()
             .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        val todayEnd = todayStart + 24 * 60 * 60 * 1000
 
         val db = getDatabase(context)
         val todayEntries = runBlocking {
-            db.diaryEntryDao().getAllEntriesWithPhotos().firstOrNull()?.filter {
-                it.entry.createdAt in todayStart until todayEnd
-            } ?: emptyList()
+            db.diaryEntryDao().getEntriesWithPhotosByDate(todayStart)
         }
 
         val dateText = todayStart.let {
@@ -69,10 +66,7 @@ class TodayWidgetProvider : AppWidgetProvider() {
         if (todayEntries.isNotEmpty()) {
             val first = todayEntries.first()
             val title = first.entry.title.ifEmpty { first.entry.content.take(30) }
-            views.setTextViewText(
-                R.id.widget_title,
-                if (todayEntries.size > 1) "共${todayEntries.size}篇日记" else title
-            )
+            views.setTextViewText(R.id.widget_title, title)
             views.setViewVisibility(R.id.widget_title, android.view.View.VISIBLE)
 
             val photoBitmap = loadThumbnail(context, first)
@@ -121,7 +115,7 @@ class TodayWidgetProvider : AppWidgetProvider() {
             AppDatabase::class.java,
             "photo_diary.db"
         )
-            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5)
             .build()
             .also { cachedDb = it }
     }

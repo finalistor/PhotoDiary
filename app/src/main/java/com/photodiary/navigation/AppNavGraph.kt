@@ -47,9 +47,6 @@ fun AppNavGraph(
             TimelineScreen(
                 repository = repository,
                 userPreferences = userPreferences,
-                onNavigateToCreate = {
-                    navController.navigate(Screen.CreateEditEntry.createRoute())
-                },
                 onNavigateToCreateWithDate = { date ->
                     navController.navigate(Screen.CreateEditEntry.createRoute(date = date))
                 },
@@ -61,6 +58,9 @@ fun AppNavGraph(
                 },
                 onNavigateToTagManagement = {
                     navController.navigate(Screen.TagManagement.route)
+                },
+                onNavigateToCalendarPicker = {
+                    navController.navigate(Screen.Calendar.createRoute(pickerMode = true))
                 }
             )
         }
@@ -99,12 +99,26 @@ fun AppNavGraph(
         ) { backStackEntry ->
             val entryId = backStackEntry.arguments?.getLong("entryId") ?: -1L
             val date = backStackEntry.arguments?.getLong("date") ?: -1L
+            val isCreate = entryId == -1L
             CreateEditEntryScreen(
-                entryId = if (entryId == -1L) null else entryId,
+                entryId = if (isCreate) null else entryId,
                 initialDate = if (date == -1L) null else date,
                 repository = repository,
                 userPreferences = userPreferences,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = {
+                    if (isCreate) navController.popBackStack(Screen.Timeline.route, inclusive = false)
+                    else navController.popBackStack()
+                },
+                onNavigateToEntry = { targetId ->
+                    if (isCreate) navController.popBackStack(Screen.Timeline.route, inclusive = false)
+                    else navController.popBackStack()
+                    navController.navigate(Screen.EntryDetail.createRoute(targetId))
+                },
+                onNavigateToEditEntry = { targetId ->
+                    if (isCreate) navController.popBackStack(Screen.Timeline.route, inclusive = false)
+                    else navController.popBackStack()
+                    navController.navigate(Screen.CreateEditEntry.createRoute(targetId))
+                }
             )
         }
 
@@ -135,7 +149,16 @@ fun AppNavGraph(
             )
         }
 
-        composable(Screen.Calendar.route) {
+        composable(
+            route = Screen.Calendar.route,
+            arguments = listOf(
+                navArgument("pickerMode") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
+        ) { backStackEntry ->
+            val pickerMode = backStackEntry.arguments?.getBoolean("pickerMode") ?: false
             CalendarScreen(
                 repository = repository,
                 onNavigateBack = { navController.popBackStack() },
@@ -144,7 +167,12 @@ fun AppNavGraph(
                 },
                 onNavigateToCreateWithDate = { date ->
                     navController.navigate(Screen.CreateEditEntry.createRoute(date = date))
-                }
+                },
+                onNavigateToEdit = { entryId ->
+                    navController.popBackStack()
+                    navController.navigate(Screen.CreateEditEntry.createRoute(entryId))
+                },
+                pickerMode = pickerMode
             )
         }
 

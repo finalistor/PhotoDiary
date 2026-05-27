@@ -25,7 +25,7 @@ fun buildCalendarDays(
     val zone = ZoneId.systemDefault()
 
     val entriesWithDate = entries.map { entry ->
-        Instant.ofEpochMilli(entry.createdAt).atZone(zone).toLocalDate() to entry
+        Instant.ofEpochMilli(entry.entryDate).atZone(zone).toLocalDate() to entry
     }
     val entriesByDate: Map<LocalDate, List<DiaryEntry>> = entriesWithDate
         .filter { (date, _) ->

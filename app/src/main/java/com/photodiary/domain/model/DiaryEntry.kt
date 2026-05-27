@@ -9,6 +9,7 @@ data class DiaryEntry(
     val content: String,
     val createdAt: Long,
     val updatedAt: Long,
+    val entryDate: Long = createdAt,
     val photos: List<Photo> = emptyList(),
     val tags: List<String> = emptyList()
 )

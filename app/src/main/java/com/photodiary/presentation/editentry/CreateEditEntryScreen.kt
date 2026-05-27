@@ -84,6 +84,8 @@ fun CreateEditEntryScreen(
     repository: DiaryRepository,
     userPreferences: UserPreferences? = null,
     onNavigateBack: () -> Unit,
+    onNavigateToEntry: (Long) -> Unit = {},
+    onNavigateToEditEntry: (Long) -> Unit = {},
     viewModel: CreateEditEntryViewModel = viewModel(
         factory = CreateEditEntryViewModel.Factory(repository, entryId, initialDate, userPreferences)
     )
@@ -96,6 +98,7 @@ fun CreateEditEntryScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var showCustomTagDialog by remember { mutableStateOf(false) }
     var cameraUri by remember { mutableStateOf<Uri?>(null) }
+    var dateConflictEvent by remember { mutableStateOf<CreateEditEntryEvent.DateConflictRedirect?>(null) }
 
     val tagDefs = remember(uiState.customTagNames, uiState.tags) { allTagDefs(uiState.customTagNames) }
 
@@ -136,6 +139,23 @@ fun CreateEditEntryScreen(
                 is CreateEditEntryEvent.ShowError -> {
                     Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
                 }
+                is CreateEditEntryEvent.DateConflictRedirect -> {
+                    if (event.hasUnsavedChanges) {
+                        dateConflictEvent = event
+                    } else if (event.navigateToEdit) {
+                        onNavigateToEditEntry(event.targetEntryId)
+                    } else {
+                        onNavigateToEntry(event.targetEntryId)
+                    }
+                }
+                is CreateEditEntryEvent.NavigateToEntry -> {
+                    TodayWidgetProvider.updateAllWidgets(context)
+                    onNavigateToEntry(event.entryId)
+                }
+                is CreateEditEntryEvent.NavigateToEditEntry -> {
+                    TodayWidgetProvider.updateAllWidgets(context)
+                    onNavigateToEditEntry(event.entryId)
+                }
             }
         }
     }
@@ -144,6 +164,40 @@ fun CreateEditEntryScreen(
         if (pendingDiscard) {
             viewModel.discard()
         }
+    }
+
+    dateConflictEvent?.let { event ->
+        AlertDialog(
+            onDismissRequest = { dateConflictEvent = null },
+            title = { Text("日期已有日记") },
+            text = {
+                Column {
+                    Text("该日期已有日记「${event.targetEntryTitle}」")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    TextButton(
+                        onClick = {
+                            dateConflictEvent = null
+                            viewModel.discardAndNavigateToEditEntry(event.targetEntryId)
+                        },
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    ) {
+                        Text("跳转并修改", color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    dateConflictEvent = null
+                    viewModel.saveAndNavigateToEntry(event.targetEntryId)
+                }) { Text("保存并查看") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    dateConflictEvent = null
+                    viewModel.discardAndNavigateToEntry(event.targetEntryId)
+                }) { Text("放弃并查看") }
+            }
+        )
     }
 
     if (showDiscardDialog) {

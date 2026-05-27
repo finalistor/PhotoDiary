@@ -38,4 +38,11 @@ interface DiaryEntryDao {
 
     @Query("DELETE FROM diary_entries WHERE id = :entryId")
     suspend fun deleteEntry(entryId: Long)
+
+    @Transaction
+    @Query("SELECT * FROM diary_entries WHERE entry_date = :date")
+    suspend fun getEntriesWithPhotosByDate(date: Long): List<EntryWithPhotos>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM diary_entries WHERE entry_date = :date AND id != :excludeId)")
+    suspend fun entryExistsForDate(date: Long, excludeId: Long = 0): Boolean
 }
