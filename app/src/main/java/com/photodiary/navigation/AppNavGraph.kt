@@ -1,7 +1,7 @@
 package com.photodiary.navigation
 
 import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
@@ -31,16 +31,28 @@ fun AppNavGraph(
         navController = navController,
         startDestination = Screen.Timeline.route,
         enterTransition = {
-            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(300)) + fadeIn(tween(200))
+            slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.Left,
+                spring(stiffness = 200f, dampingRatio = 0.6f)
+            ) + fadeIn(spring(stiffness = 200f))
         },
         exitTransition = {
-            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(300)) + fadeOut(tween(200))
+            slideOutOfContainer(
+                AnimatedContentTransitionScope.SlideDirection.Left,
+                spring(stiffness = 200f)
+            ) + fadeOut(spring(stiffness = 200f))
         },
         popEnterTransition = {
-            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(300)) + fadeIn(tween(200))
+            slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.Right,
+                spring(stiffness = 200f, dampingRatio = 0.6f)
+            ) + fadeIn(spring(stiffness = 200f))
         },
         popExitTransition = {
-            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(300)) + fadeOut(tween(200))
+            slideOutOfContainer(
+                AnimatedContentTransitionScope.SlideDirection.Right,
+                spring(stiffness = 200f)
+            ) + fadeOut(spring(stiffness = 200f))
         }
     ) {
         composable(Screen.Timeline.route) {

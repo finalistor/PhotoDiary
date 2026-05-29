@@ -2,6 +2,10 @@ package com.photodiary.presentation.tagmanagement
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -14,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -35,6 +40,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -160,6 +166,9 @@ fun TagManagementScreen(
                 val presetItems = uiState.tagItems.filter { it.isPreset }
                 val customItems = uiState.tagItems.filter { !it.isPreset }
 
+                var listVisible by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) { listVisible = true }
+
                 LazyColumn(
                     modifier = Modifier.fillMaxSize()
                         .padding(horizontal = 16.dp),
@@ -169,13 +178,19 @@ fun TagManagementScreen(
                         item {
                             SectionHeader("预设标签")
                         }
-                        items(presetItems, key = { it.name }) { item ->
-                            TagRow(
-                                item = item,
-                                showDelete = true,
-                                onClick = { onNavigateToTagFilter(item.name) },
-                                onDelete = { deleteTarget = item }
-                            )
+                        itemsIndexed(presetItems, key = { _, item -> item.name }) { _, item ->
+                            AnimatedVisibility(
+                                visible = listVisible,
+                                enter = fadeIn(spring(stiffness = 150f, dampingRatio = 0.6f)) +
+                                    slideInVertically(spring(stiffness = 150f, dampingRatio = 0.6f)) { it / 6 }
+                            ) {
+                                TagRow(
+                                    item = item,
+                                    showDelete = true,
+                                    onClick = { onNavigateToTagFilter(item.name) },
+                                    onDelete = { deleteTarget = item }
+                                )
+                            }
                         }
                     }
                     if (customItems.isNotEmpty()) {
@@ -183,13 +198,19 @@ fun TagManagementScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             SectionHeader("自定义标签")
                         }
-                        items(customItems, key = { it.name }) { item ->
-                            TagRow(
-                                item = item,
-                                showDelete = true,
-                                onClick = { onNavigateToTagFilter(item.name) },
-                                onDelete = { deleteTarget = item }
-                            )
+                        itemsIndexed(customItems, key = { _, item -> item.name }) { _, item ->
+                            AnimatedVisibility(
+                                visible = listVisible,
+                                enter = fadeIn(spring(stiffness = 150f, dampingRatio = 0.6f)) +
+                                    slideInVertically(spring(stiffness = 150f, dampingRatio = 0.6f)) { it / 6 }
+                            ) {
+                                TagRow(
+                                    item = item,
+                                    showDelete = true,
+                                    onClick = { onNavigateToTagFilter(item.name) },
+                                    onDelete = { deleteTarget = item }
+                                )
+                            }
                         }
                     }
                     item { Spacer(modifier = Modifier.height(80.dp)) }

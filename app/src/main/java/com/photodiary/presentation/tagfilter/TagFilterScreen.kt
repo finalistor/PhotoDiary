@@ -1,5 +1,9 @@
 package com.photodiary.presentation.tagfilter
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -7,7 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
@@ -20,9 +24,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -88,19 +95,28 @@ fun TagFilterScreen(
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else {
+                var listVisible by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) { listVisible = true }
+
                 LazyColumn(
                     contentPadding = PaddingValues(bottom = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
-                    items(uiState.entries, key = { it.id }) { entry ->
-                        RecentEntryCard(
-                            entry = entry,
-                            onClick = { onNavigateToDetail(entry.id) },
-                            tagColorMap = tagColorMap,
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
-                                .animateItemPlacement()
-                        )
+                    itemsIndexed(uiState.entries, key = { _, entry -> entry.id }) { _, entry ->
+                        AnimatedVisibility(
+                            visible = listVisible,
+                            enter = fadeIn(spring(stiffness = 150f, dampingRatio = 0.6f)) +
+                                slideInVertically(spring(stiffness = 150f, dampingRatio = 0.6f)) { it / 6 },
+                            modifier = Modifier.animateItemPlacement()
+                        ) {
+                            RecentEntryCard(
+                                entry = entry,
+                                onClick = { onNavigateToDetail(entry.id) },
+                                tagColorMap = tagColorMap,
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                            )
+                        }
                     }
                 }
             }

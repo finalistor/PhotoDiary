@@ -2,7 +2,7 @@ package com.photodiary.presentation.calendar
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -151,8 +151,10 @@ fun CalendarScreen(
                         transitionSpec = {
                             val forward = targetState > initialState
                             val direction = if (forward) 1 else -1
-                            (slideInHorizontally(tween(250)) { direction * it / 4 } + fadeIn(tween(150)))
-                                .togetherWith(slideOutHorizontally(tween(250)) { -direction * it / 4 } + fadeOut(tween(150)))
+                            (slideInHorizontally(spring(stiffness = 200f, dampingRatio = 0.6f)) { direction * it / 4 } +
+                                fadeIn(spring(stiffness = 200f)))
+                                .togetherWith(slideOutHorizontally(spring(stiffness = 200f)) { -direction * it / 4 } +
+                                    fadeOut(spring(stiffness = 200f)))
                                 .using(SizeTransform(clip = false))
                         }
                     ) {

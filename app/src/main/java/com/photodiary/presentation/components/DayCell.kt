@@ -1,8 +1,12 @@
 package com.photodiary.presentation.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,9 +21,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -42,6 +49,13 @@ fun DayCell(
     val dayPaddingH = if (day.isToday) (if (compact) 5.dp else 7.dp) else 0.dp
     val dayPaddingV = if (day.isToday) 1.dp else 0.dp
 
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = spring(stiffness = 800f, dampingRatio = 0.5f)
+    )
+
     Box(
         modifier = modifier
             .aspectRatio(1f)
@@ -61,7 +75,7 @@ fun DayCell(
             )
             .then(
                 if (day.firstEntryId != null || !day.date.isAfter(LocalDate.now()))
-                    Modifier.clickable { onClick(day) }
+                    Modifier.scale(scale).clickable(interactionSource, indication = null) { onClick(day) }
                 else Modifier
             )
     ) {
@@ -73,7 +87,8 @@ fun DayCell(
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
-                alpha = alpha
+                alpha = alpha,
+                loading = { ShimmerPlaceholder(Modifier.fillMaxSize()) }
             )
         } else if (day.thumbnailPaths.size >= 2) {
             Column(
@@ -90,14 +105,16 @@ fun DayCell(
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.weight(1f).fillMaxSize(),
-                        alpha = alpha
+                        alpha = alpha,
+                        loading = { ShimmerPlaceholder(Modifier.fillMaxSize()) }
                     )
                     SubcomposeAsyncImage(
                         model = File(day.thumbnailPaths.getOrElse(1) { day.thumbnailPaths[0] }),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.weight(1f).fillMaxSize(),
-                        alpha = alpha
+                        alpha = alpha,
+                        loading = { ShimmerPlaceholder(Modifier.fillMaxSize()) }
                     )
                 }
                 // Bottom row: next 2 photos
@@ -111,7 +128,8 @@ fun DayCell(
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.weight(1f).fillMaxSize(),
-                            alpha = alpha
+                            alpha = alpha,
+                            loading = { ShimmerPlaceholder(Modifier.fillMaxSize()) }
                         )
                         if (day.thumbnailPaths.size >= 4) {
                             SubcomposeAsyncImage(
@@ -119,7 +137,8 @@ fun DayCell(
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.weight(1f).fillMaxSize(),
-                                alpha = alpha
+                                alpha = alpha,
+                                loading = { ShimmerPlaceholder(Modifier.fillMaxSize()) }
                             )
                         } else {
                             Spacer(modifier = Modifier.weight(1f))

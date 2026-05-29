@@ -12,7 +12,8 @@ interface DiaryRepository {
         content: String,
         photoFileNames: List<String>,
         tags: List<String> = emptyList(),
-        createdAt: Long = System.currentTimeMillis()
+        createdAt: Long = System.currentTimeMillis(),
+        entryDateMillis: Long = createdAt
     ): Long
     suspend fun updateEntry(entry: DiaryEntry): Unit
     suspend fun updateEntryWithPhotos(
@@ -21,7 +22,8 @@ interface DiaryRepository {
         content: String,
         createdAt: Long,
         photoFileNames: List<String>,
-        tags: List<String> = emptyList()
+        tags: List<String> = emptyList(),
+        entryDateMillis: Long = createdAt
     )
     fun searchEntries(query: String): Flow<List<DiaryEntry>>
     fun getEntriesByTag(tag: String): Flow<List<DiaryEntry>>

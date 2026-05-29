@@ -59,9 +59,10 @@ class DiaryRepositoryImpl(
         content: String,
         photoFileNames: List<String>,
         tags: List<String>,
-        createdAt: Long
+        createdAt: Long,
+        entryDateMillis: Long
     ): Long {
-        val entryDate = normalizeToLocalMidnight(createdAt)
+        val entryDate = normalizeToLocalMidnight(entryDateMillis)
         if (diaryEntryDao.entryExistsForDate(entryDate)) {
             throw DateConflictException("该日期已有日记")
         }
@@ -92,6 +93,8 @@ class DiaryRepositoryImpl(
     }
 
     override suspend fun updateEntry(entry: DiaryEntry) {
+        val entryDate = if (entry.entryDate > 0) normalizeToLocalMidnight(entry.entryDate)
+                        else normalizeToLocalMidnight(entry.createdAt)
         diaryEntryDao.updateEntry(
             DiaryEntryEntity(
                 id = entry.id,
@@ -99,7 +102,7 @@ class DiaryRepositoryImpl(
                 content = entry.content,
                 createdAt = entry.createdAt,
                 updatedAt = System.currentTimeMillis(),
-                entryDate = normalizeToLocalMidnight(entry.createdAt),
+                entryDate = entryDate,
                 tags = entry.tags
             )
         )
@@ -111,9 +114,10 @@ class DiaryRepositoryImpl(
         content: String,
         createdAt: Long,
         photoFileNames: List<String>,
-        tags: List<String>
+        tags: List<String>,
+        entryDateMillis: Long
     ) {
-        val entryDate = normalizeToLocalMidnight(createdAt)
+        val entryDate = normalizeToLocalMidnight(entryDateMillis)
         if (diaryEntryDao.entryExistsForDate(entryDate, excludeId = entryId)) {
             throw DateConflictException("该日期已有日记")
         }

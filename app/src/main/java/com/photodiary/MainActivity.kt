@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.photodiary.navigation.AppNavGraph
 import com.photodiary.ui.theme.PhotoDiaryTheme
+import com.photodiary.ui.theme.ThemePreset
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,7 +27,10 @@ class MainActivity : ComponentActivity() {
             val themeMode by userPreferences.themeModeFlow.collectAsState(
                 initial = com.photodiary.ui.theme.ThemeMode.SYSTEM
             )
-            PhotoDiaryTheme(themeMode = themeMode) {
+            val themePreset by userPreferences.themePresetFlow.collectAsState(
+                initial = ThemePreset.TERRACOTTA
+            )
+            PhotoDiaryTheme(themeMode = themeMode, themePreset = themePreset) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
                     AppNavGraph(

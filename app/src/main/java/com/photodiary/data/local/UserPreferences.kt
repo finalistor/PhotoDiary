@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.photodiary.ui.theme.ThemeMode
+import com.photodiary.ui.theme.ThemePreset
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -24,6 +25,17 @@ class UserPreferences(private val context: Context) {
     suspend fun setThemeMode(mode: ThemeMode) {
         context.dataStore.edit { prefs ->
             prefs[THEME_MODE_KEY] = mode.name
+        }
+    }
+
+    val themePresetFlow: Flow<ThemePreset> = context.dataStore.data.map { prefs ->
+        val name = prefs[THEME_PRESET_KEY] ?: ThemePreset.TERRACOTTA.name
+        try { ThemePreset.valueOf(name) } catch (_: Exception) { ThemePreset.TERRACOTTA }
+    }.distinctUntilChanged()
+
+    suspend fun setThemePreset(preset: ThemePreset) {
+        context.dataStore.edit { prefs ->
+            prefs[THEME_PRESET_KEY] = preset.name
         }
     }
 
@@ -67,6 +79,7 @@ class UserPreferences(private val context: Context) {
 
     companion object {
         private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
+        private val THEME_PRESET_KEY = stringPreferencesKey("theme_preset")
         private val CUSTOM_TAGS_KEY = stringPreferencesKey("custom_tags")
     }
 }

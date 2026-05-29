@@ -4,6 +4,7 @@
 
 Android photo diary app. Kotlin + Jetpack Compose + Room + Coil + Material3 + Sentry.
 Min SDK 29, target 34. Manual DI (no Hilt). MVVM + Clean Architecture.
+6 preset color themes (Terracotta/Ocean/Forest/Lavender/Sunset/Monochrome) with animated transitions.
 
 ## Release
 
@@ -25,7 +26,7 @@ app/src/main/java/com/photodiary/
 ├── data/local/dao/                    # Room DAOs (DiaryEntryDao, PhotoDao)
 ├── data/local/AppDatabase.kt          # Room DB (v5, exportSchema=false)
 ├── data/local/TagsConverter.kt        # TypeConverter: List<String> ↔ JSON
-├── data/local/UserPreferences.kt      # DataStore<Preferences> — theme mode + custom tags
+├── data/local/UserPreferences.kt      # DataStore<Preferences> — theme mode + theme preset + custom tags
 ├── data/repository/                   # DiaryRepositoryImpl (Room + file I/O)
 ├── domain/model/                      # DiaryEntry, Photo, CalendarDay, TagDefinitions
 ├── domain/repository/                 # DiaryRepository interface
@@ -39,10 +40,11 @@ app/src/main/java/com/photodiary/
 ├── presentation/photoviewer/          # Full-screen HorizontalPager
 ├── presentation/tagmanagement/        # Tag management: list all tags + add/delete
 ├── presentation/tagfilter/            # Entries filtered by a tag
-├── presentation/components/           # DayCell, CustomInputDialog, PhotoGrid, PhotoThumbnail, RecentEntryCard
+├── presentation/theme/                # ThemePickerSheet (modal bottom sheet)
+├── presentation/components/           # DayCell, CustomInputDialog, PhotoGrid, PhotoThumbnail, RecentEntryCard, ShimmerPlaceholder
 ├── widget/                            # TodayWidgetProvider (AppWidget)
 ├── util/                              # ShareImageGenerator (Canvas bitmap rendering)
-└── ui/theme/                          # Color, Type, Theme, ThemeMode (Terracotta warm palette)
+└── ui/theme/                          # Color, Type, Theme, ThemeMode, ThemePreset, PresetColors
 ```
 
 ## Architecture Rules
@@ -92,9 +94,9 @@ fun getAllEntries(): Flow<List<DiaryEntry>>
 fun getEntryWithPhotos(entryId: Long): Flow<DiaryEntry?>
 fun searchEntries(query: String): Flow<List<DiaryEntry>>            // LIKE on title & content
 fun getEntriesByTag(tag: String): Flow<List<DiaryEntry>>            // exact tag match via JSON LIKE
-suspend fun createEntry(title, content, photoFileNames, tags, createdAt): Long  // throws DateConflictException if date taken
-suspend fun updateEntry(entry: DiaryEntry)                          // title/content/tags only, no conflict check
-suspend fun updateEntryWithPhotos(id, title, content, createdAt, photoFileNames, tags)  // throws DateConflictException
+suspend fun createEntry(title, content, photoFileNames, tags, createdAt, entryDateMillis): Long  // throws DateConflictException if date taken
+suspend fun updateEntry(entry: DiaryEntry)                          // title/content/tags; uses entry.entryDate if set
+suspend fun updateEntryWithPhotos(id, title, content, createdAt, photoFileNames, tags, entryDateMillis)  // throws DateConflictException
 suspend fun deleteEntry(entryId: Long)
 suspend fun entryExistsForDate(date, excludeId): Boolean            // check if a date already has an entry
 fun resolvePhotoPath(fileName: String): String
@@ -113,10 +115,10 @@ suspend fun savePhoto(uri: Uri): String
 8. **Pull-to-refresh** — Material3 `PullToRefreshContainer` + `rememberPullToRefreshState` on Timeline LazyColumn. `ViewModel.refresh()` is a `suspend` function, called from `LaunchedEffect` when pull triggers.
 9. **Date formatting** — All timestamps use `java.time` (`Instant.ofEpochMilli` → `ZonedDateTime` → `DateTimeFormatter`). No `SimpleDateFormat` remaining.
 10. **Calendar day click** — Past/today dates always clickable. Normal mode: has entry → navigate to detail, no entry → create with date pre-filled. Picker mode (from FAB): has entry → navigate to edit, no entry → create. Calendar route supports `pickerMode` boolean arg.
-11. **Date picker in editor** — `DatePickerDialog` on the create/edit screen, selectable dates limited to today and earlier. `createEntry()` accepts `createdAt: Long` param (defaults to `System.currentTimeMillis()`).
+11. **Date picker in editor** — `DatePickerDialog` on the create/edit screen, selectable dates limited to today and earlier. Two separate fields: `createdAt` (actual creation timestamp, `System.currentTimeMillis()`) and `entryDate` (the calendar date the entry belongs to, stored as local midnight epoch). `createEntry()` accepts both `createdAt` and `entryDateMillis` params. On edit, loads `entryDate` (not `createdAt`) into `selectedEntryDate` so the date picker shows the entry's assigned date, not its creation time. Save preserves `originalCreatedAt` for the DB `created_at` field while `selectedEntryDate` → `entryDateMillis` → `normalizeToLocalMidnight()` → `entry_date`.
 12. **Calendar thumbnails** — `CalendarDay.thumbnailPaths: List<String>` holds up to 4 photo paths. `buildCalendarDays()` uses `flatMap { it.photos }.take(4)` across all entries on a date. `DayCell` renders 1 photo full-size, 2-4 photos as a 2×2 grid.
 13. **One entry per day** — `diary_entries.entry_date` (local midnight epoch) has a UNIQUE constraint. Each calendar day can have at most one diary entry. FAB opens calendar picker (pickerMode): has entry → edit, no entry → create. Date picker conflict: shows dialog (保存并查看 / 放弃并查看 / 跳转并修改) if unsaved changes, or auto-redirects to existing entry. New entry init: if today already has entry, auto-redirects (FAB→edit, calendar click→view).
-14. **entryDate field** — Added in DB v5 migration. Stored as local midnight epoch millis alongside `createdAt` (actual timestamp). UNIQUE index enforces one-entry-per-day at DB level. Repository normalizes dates via `normalizeToLocalMidnight()` using `java.time`. `CalendarDay.buildCalendarDays` groups by `entryDate`. Widget queries by `entry_date` equality.
+14. **createdAt vs entryDate** — `createdAt` = when the entry was physically created (actual timestamp). `entryDate` = which calendar day the entry belongs to (local midnight epoch). They differ when creating entries for past dates via calendar picker, or when the date is changed during edit. Added in DB v5 migration. UNIQUE index on `entry_date` enforces one-entry-per-day. `CalendarDay.buildCalendarDays` groups by `entryDate`. Widget queries by `entry_date` equality. Editor ViewModel: `selectedEntryDate`/`initialSelectedEntryDate` use entry's `entryDate`; `originalCreatedAt` preserves `createdAt`. Text-only save passes `createdAt = originalCreatedAt` + `entryDate = selectedEntryDate`. Repository `updateEntry()` uses `entry.entryDate` when set, falls back to `entry.createdAt` for backward compatibility.
 15. **Tags** — `DiaryEntryEntity.tags` stored as JSON array via `TagsConverter` (TypeConverter), default `[]`. Multi-select with preset options (旅行/美食/日常/工作) plus custom input via "+" button → AlertDialog. Tag definitions with colors in `domain/model/TagDefinitions.kt` (preset colors + custom palette via index). Custom tags persisted in DataStore (`UserPreferences.customTagsFlow`) at save time, not on toggle (prevents orphan tags); `toggleTag()` immediately updates `customTagNames` in UiState for instant visual feedback. `UserPreferences` supports add + delete for custom tags. DB v1→v2→v3→v4: v2 added tags column + legacy mood column, v3 converted mood→moods JSON array, v4 drops moods column (table rebuild migration). Editor: colored tag FilterChips. Detail + Timeline card: colored tag chips below content. Tag management page (see #21).
 16. **Share** — `EntryDetailScreen` top bar has share button. Generates a composite image (1080px wide, white background) via `ShareImageGenerator`: first photo (scaled to fit, 720px tall), title, content (max 10 lines), "PhotoDiary" watermark. Bitmap saved to `context.cacheDir`, shared via `FileProvider` URI with `Intent.ACTION_SEND` (image/jpeg). Uses `Dispatchers.IO` for bitmap generation and file I/O.
 17. **Photo wall** — `TimelineScreen` top bar `Wallpaper` icon → `PhotoWallScreen`. Year selector in top bar (chevrons). Shows all 12 months for selected year: `stickyHeader` per month ("M月" + photo count), empty months show "无照片". Photos in 3-column grid rows (1:1 aspect `SubcomposeAsyncImage`). Click photo → navigate to entry detail.
@@ -124,6 +126,8 @@ suspend fun savePhoto(uri: Uri): String
 19. **Animations** — Navigation: `NavHost` global `enterTransition`/`exitTransition` = slide + fade (300ms tween). Calendar: `AnimatedContent` keyed on `currentMonth` with direction-aware horizontal slide (forward=right, backward=left, determined by `targetState > initialState`) 1/4-distance + fade in both Timeline inline and full CalendarScreen. FAB: `AnimatedVisibility` with slide-in/out vertical + fade when entering/exiting search mode. List items: `animateItemPlacement()` on Timeline `RecentEntryCard` and PhotoWall grid rows for smooth insert/delete/reorder transitions.
 20. **AppWidget** — `TodayWidgetProvider`: 4x2 home-screen widget showing today's date, entry count/title, and first photo thumbnail. Uses RemoteViews layout with rounded card background. Queries Room DB directly (separate DB instance with same migrations). Auto-refreshes every 30 min via `updatePeriodMillis`. Immediate refresh triggered after save (CreateEditEntryScreen) and delete (EntryDetailScreen) via `TodayWidgetProvider.updateAllWidgets(context)`. Tap opens MainActivity.
 21. **Tag Management** — `TimelineScreen` top bar `Bookmark` icon → `TagManagementScreen`. Lists all tags (preset + custom) with color circle, name, and entry count badge. Both preset and custom tags show delete button → `AlertDialog` confirms deletion with scope description (preset: removed from all entries but stays in picker; custom: removed from all entries + permanently deleted from DataStore). `FAB` "+" → `CustomInputDialog` for adding new custom tags (persisted to DataStore). Click tag → `TagFilterScreen` showing all entries with that tag via `getEntriesByTag()` DAO query (`LIKE '%"tag"%'` for exact match in JSON array). Custom tag persistence delayed to `save()` time to prevent orphan tags; `toggleTag()` immediately updates `customTagNames` in UiState for instant visual feedback. `RecentEntryCard` extracted to `presentation/components/` for reuse across Timeline and TagFilter.
+22. **Theme Presets** — 6 color schemes (Terracotta/Ocean Blue/Forest Green/Lavender/Sunset Orange/Monochrome), each with full light+dark `ColorScheme`. `PresetColors.kt` via `presetColorScheme(preset, darkTheme)` returns complete scheme. `ThemePreset` enum with Chinese display names. Selected preset persisted in DataStore (`theme_preset` key, defaults to TERRACOTTA). `PhotoDiaryTheme` accepts `themePreset` param, animates all 22 color slots with `animateColorAsState(tween(500))` for smooth transitions. `ThemePickerSheet` — `ModalBottomSheet` with 6 circular color swatches, current preset shows checkmark (spring-scale animated). Palette icon in Timeline top bar opens the sheet. Independent from existing SYSTEM/LIGHT/DARK `ThemeMode` toggle.
+23. **Animation System** — Navigation transitions use `spring(stiffness=200f, dampingRatio=0.6f)` for natural slide+fade on push/pop. Calendar month switching: direction-aware horizontal slide (1/4 distance) + fade, `spring()`-based. FAB show/hide: vertical slide + fade with `spring()`. Search bar: `AnimatedContent` with vertical slide+fade between normal and search `TopAppBar`. DayCell: press-scale via `InteractionSource.collectIsPressedAsState()` → `animateFloatAsState(0.92f↔1f, spring(stiffness=800f))`. Staggered list entrance: `AnimatedVisibility` with `fadeIn+slideInVertically` per item, triggered by `LaunchedEffect(Unit)`. Shimmer: `rememberInfiniteTransition` + `Brush.linearGradient` on `SubcomposeAsyncImage.loading`. `animateItemPlacement()` retained for list reorder animations.
 
 ## Common Pitfalls
 

@@ -219,7 +219,7 @@ fun CreateEditEntryScreen(
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = uiState.originalCreatedAt,
+            initialSelectedDateMillis = uiState.selectedEntryDate,
             selectableDates = object : androidx.compose.material3.SelectableDates {
                 override fun isSelectableDate(utcTimeMillis: Long): Boolean {
                     val date = Instant.ofEpochMilli(utcTimeMillis).atZone(ZoneId.systemDefault()).toLocalDate()
@@ -232,7 +232,7 @@ fun CreateEditEntryScreen(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { viewModel.updateCreatedAt(it) }
+                    datePickerState.selectedDateMillis?.let { viewModel.updateSelectedEntryDate(it) }
                     showDatePicker = false
                 }) { Text("确定") }
             },
@@ -355,33 +355,35 @@ fun CreateEditEntryScreen(
                 textStyle = MaterialTheme.typography.titleMedium
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            if (uiState.selectedEntryDate > 0) {
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showDatePicker = true }
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.CalendarMonth,
-                    contentDescription = "选择日期",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = ZonedDateTime.ofInstant(
-                        Instant.ofEpochMilli(uiState.originalCreatedAt),
-                        ZoneId.systemDefault()
-                    ).format(DateTimeFormatter.ofPattern("yyyy年MM月dd日")),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showDatePicker = true }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.CalendarMonth,
+                        contentDescription = "选择日期",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = ZonedDateTime.ofInstant(
+                            Instant.ofEpochMilli(uiState.selectedEntryDate),
+                            ZoneId.systemDefault()
+                        ).format(DateTimeFormatter.ofPattern("yyyy年MM月dd日")),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 text = "标签",

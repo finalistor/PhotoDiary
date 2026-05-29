@@ -5,7 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -45,6 +46,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.AlertDialog
@@ -96,7 +98,9 @@ import com.photodiary.domain.model.tagColor
 import com.photodiary.domain.repository.DiaryRepository
 import com.photodiary.presentation.components.DayCell
 import com.photodiary.presentation.components.RecentEntryCard
+import com.photodiary.presentation.theme.ThemePickerSheet
 import com.photodiary.ui.theme.ThemeMode
+import com.photodiary.ui.theme.ThemePreset
 import kotlinx.coroutines.launch
 import java.io.File
 import java.time.Instant
@@ -119,11 +123,13 @@ fun TimelineScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val themeMode by userPreferences.themeModeFlow.collectAsState(initial = ThemeMode.SYSTEM)
+    val themePreset by userPreferences.themePresetFlow.collectAsState(initial = ThemePreset.TERRACOTTA)
     val customTagNames by userPreferences.customTagsFlow.collectAsState(initial = emptyList())
     val tagColorMap = remember(customTagNames) { buildTagColorMap(customTagNames) }
     val coroutineScope = rememberCoroutineScope()
     val pullToRefreshState = rememberPullToRefreshState()
     var showAboutDialog by remember { mutableStateOf(false) }
+    var showThemePicker by remember { mutableStateOf(false) }
 
     if (pullToRefreshState.isRefreshing) {
         LaunchedEffect(Unit) {
@@ -134,7 +140,20 @@ fun TimelineScreen(
 
     Scaffold(
         topBar = {
-            if (uiState.isSearching) {
+            AnimatedContent(
+                targetState = uiState.isSearching,
+                transitionSpec = {
+                    if (targetState) {
+                        (slideInVertically(spring(stiffness = 300f)) { -it } + fadeIn(spring(stiffness = 300f)))
+                            .togetherWith(slideOutVertically(spring(stiffness = 300f)) { it } + fadeOut(spring(stiffness = 300f)))
+                    } else {
+                        (slideInVertically(spring(stiffness = 300f)) { it } + fadeIn(spring(stiffness = 300f)))
+                            .togetherWith(slideOutVertically(spring(stiffness = 300f)) { -it } + fadeOut(spring(stiffness = 300f)))
+                    }
+                },
+                label = "search_bar"
+            ) { searching ->
+            if (searching) {
                 TopAppBar(
                     navigationIcon = {
                         IconButton(onClick = { viewModel.toggleSearch() }) {
@@ -211,6 +230,13 @@ fun TimelineScreen(
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
+                        IconButton(onClick = { showThemePicker = true }) {
+                            Icon(
+                                Icons.Default.Palette,
+                                contentDescription = "主题配色",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                         IconButton(onClick = onNavigateToPhotoWall) {
                             Icon(
                                 Icons.Default.Wallpaper,
@@ -239,12 +265,13 @@ fun TimelineScreen(
                     )
                 )
             }
+            }  // AnimatedContent
         },
         floatingActionButton = {
             AnimatedVisibility(
                 visible = !uiState.isSearching,
-                enter = slideInVertically(tween(200)) { it } + fadeIn(tween(150)),
-                exit = slideOutVertically(tween(200)) { it } + fadeOut(tween(100))
+                enter = slideInVertically(spring(stiffness = 200f)) { it } + fadeIn(spring(stiffness = 200f)),
+                exit = slideOutVertically(spring(stiffness = 200f)) { it } + fadeOut(spring(stiffness = 200f))
             ) {
                 FloatingActionButton(
                     onClick = onNavigateToCalendarPicker,
@@ -288,19 +315,28 @@ fun TimelineScreen(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 } else {
+                    var listVisible by remember { mutableStateOf(false) }
+                    LaunchedEffect(Unit) { listVisible = true }
+
                     LazyColumn(
                         contentPadding = PaddingValues(bottom = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
-                        items(uiState.searchResults, key = { it.id }) { entry ->
-                            RecentEntryCard(
-                                entry = entry,
-                                onClick = { onNavigateToDetail(entry.id) },
-                                tagColorMap = tagColorMap,
-                                modifier = Modifier
-                                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                                    .animateItemPlacement()
-                            )
+                        itemsIndexed(uiState.searchResults, key = { _, entry -> entry.id }) { _, entry ->
+                            AnimatedVisibility(
+                                visible = listVisible,
+                                enter = fadeIn(spring(stiffness = 150f, dampingRatio = 0.6f)) +
+                                    slideInVertically(spring(stiffness = 150f, dampingRatio = 0.6f)) { it / 6 },
+                                modifier = Modifier.animateItemPlacement()
+                            ) {
+                                RecentEntryCard(
+                                    entry = entry,
+                                    onClick = { onNavigateToDetail(entry.id) },
+                                    tagColorMap = tagColorMap,
+                                    modifier = Modifier
+                                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -354,12 +390,11 @@ fun TimelineScreen(
                                 EmptyState()
                             }
                         } else {
-                            items(uiState.entries.take(15), key = { it.id }) { entry ->
+                            itemsIndexed(uiState.entries.take(15), key = { _, entry -> entry.id }) { _, entry ->
                                 RecentEntryCard(
                                     entry = entry,
                                     onClick = { onNavigateToDetail(entry.id) },
                                     tagColorMap = tagColorMap,
-
                                     modifier = Modifier
                                         .padding(horizontal = 16.dp, vertical = 6.dp)
                                         .animateItemPlacement()
@@ -415,6 +450,17 @@ fun TimelineScreen(
                     Text("确定")
                 }
             }
+        )
+    }
+
+    if (showThemePicker) {
+        ThemePickerSheet(
+            currentPreset = themePreset,
+            onPresetSelected = { preset ->
+                coroutineScope.launch { userPreferences.setThemePreset(preset) }
+                showThemePicker = false
+            },
+            onDismiss = { showThemePicker = false }
         )
     }
 }
@@ -494,8 +540,10 @@ private fun CalendarSection(
             transitionSpec = {
                 val forward = targetState > initialState
                 val direction = if (forward) 1 else -1
-                (slideInHorizontally(tween(250)) { direction * it / 4 } + fadeIn(tween(150)))
-                    .togetherWith(slideOutHorizontally(tween(250)) { -direction * it / 4 } + fadeOut(tween(150)))
+                (slideInHorizontally(spring(stiffness = 200f, dampingRatio = 0.6f)) { direction * it / 4 } +
+                    fadeIn(spring(stiffness = 200f)))
+                    .togetherWith(slideOutHorizontally(spring(stiffness = 200f)) { -direction * it / 4 } +
+                        fadeOut(spring(stiffness = 200f)))
                     .using(SizeTransform(clip = false))
             }
         ) {

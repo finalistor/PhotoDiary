@@ -28,6 +28,7 @@ data class CreateEditEntryUiState(
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
     val originalCreatedAt: Long = System.currentTimeMillis(),
+    val selectedEntryDate: Long = System.currentTimeMillis(),
     val tags: List<String> = emptyList(),
     val customTagNames: List<String> = emptyList(),
     val error: String? = null
@@ -54,7 +55,10 @@ class CreateEditEntryViewModel(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
-        CreateEditEntryUiState(originalCreatedAt = initialDate ?: System.currentTimeMillis())
+        CreateEditEntryUiState(
+            originalCreatedAt = System.currentTimeMillis(),
+            selectedEntryDate = if (entryId != null) 0L else (initialDate ?: System.currentTimeMillis())
+        )
     )
     val uiState: StateFlow<CreateEditEntryUiState> = _uiState.asStateFlow()
 
@@ -66,16 +70,17 @@ class CreateEditEntryViewModel(
     private var initialContent: String = ""
     private var initialTags: List<String> = emptyList()
     private var initialCreatedAt: Long = 0L
+    private var initialSelectedEntryDate: Long = 0L
 
     init {
         viewModelScope.launch {
+            // Load custom tags first — must complete before entry data so
+            // selectedEntryDate (set below) is not overwritten by a stale state read.
             if (userPreferences != null) {
                 val customTags = userPreferences.customTagsFlow.first()
                 _uiState.value = _uiState.value.copy(customTagNames = customTags)
             }
-        }
-        if (entryId != null) {
-            viewModelScope.launch {
+            if (entryId != null) {
                 val entry = repository.getEntryWithPhotos(entryId).first { it != null }
                 entry?.let {
                     val names = it.photos.map { p -> p.fileName }
@@ -85,6 +90,7 @@ class CreateEditEntryViewModel(
                     initialContent = it.content
                     initialTags = it.tags
                     initialCreatedAt = it.createdAt
+                    initialSelectedEntryDate = it.entryDate
                     _uiState.value = _uiState.value.copy(
                         title = it.title,
                         content = it.content,
@@ -92,14 +98,16 @@ class CreateEditEntryViewModel(
                         photoPaths = paths,
                         isEditing = true,
                         originalCreatedAt = it.createdAt,
+                        selectedEntryDate = it.entryDate,
                         tags = it.tags
                     )
                 }
-            }
-        } else {
-            viewModelScope.launch {
+            } else {
                 val date = initialDate ?: System.currentTimeMillis()
-                _uiState.value = _uiState.value.copy(title = formatDateTitle(date))
+                _uiState.value = _uiState.value.copy(
+                    title = formatDateTitle(date),
+                    selectedEntryDate = date
+                )
                 val existingEntry = repository.getEntryByDate(date)
                 if (existingEntry != null) {
                     _events.send(
@@ -107,7 +115,7 @@ class CreateEditEntryViewModel(
                             targetEntryId = existingEntry.id,
                             targetEntryTitle = existingEntry.title.ifEmpty { "无标题" },
                             hasUnsavedChanges = false,
-                            navigateToEdit = initialDate == null // FAB → edit, calendar click → view
+                            navigateToEdit = initialDate == null
                         )
                     )
                 }
@@ -185,7 +193,7 @@ class CreateEditEntryViewModel(
         return if (item in list) list - item else list + item
     }
 
-    fun updateCreatedAt(date: Long) {
+    fun updateSelectedEntryDate(date: Long) {
         viewModelScope.launch {
             val existingEntry = repository.getEntryByDate(date)
             if (existingEntry != null && existingEntry.id != (entryId ?: 0)) {
@@ -197,7 +205,7 @@ class CreateEditEntryViewModel(
                     )
                 )
             } else {
-                _uiState.value = _uiState.value.copy(originalCreatedAt = date)
+                _uiState.value = _uiState.value.copy(selectedEntryDate = date)
             }
         }
     }
@@ -208,7 +216,7 @@ class CreateEditEntryViewModel(
             return state.title != initialTitle ||
                 state.content != initialContent ||
                 state.tags != initialTags ||
-                state.originalCreatedAt != initialCreatedAt ||
+                state.selectedEntryDate != initialSelectedEntryDate ||
                 state.photoFileNames.toSet() != initialPhotoFileNames
         }
         // New entry: has changes if anything was entered
@@ -271,7 +279,8 @@ class CreateEditEntryViewModel(
                             content = state.content,
                             createdAt = state.originalCreatedAt,
                             photoFileNames = state.photoFileNames,
-                            tags = state.tags
+                            tags = state.tags,
+                            entryDateMillis = state.selectedEntryDate
                         )
                     } else {
                         repository.updateEntry(
@@ -280,6 +289,7 @@ class CreateEditEntryViewModel(
                                 title = state.title,
                                 content = state.content,
                                 createdAt = state.originalCreatedAt,
+                                entryDate = state.selectedEntryDate,
                                 updatedAt = System.currentTimeMillis(),
                                 tags = state.tags
                             )
@@ -288,7 +298,8 @@ class CreateEditEntryViewModel(
                 } else {
                     repository.createEntry(
                         state.title, state.content, state.photoFileNames,
-                        tags = state.tags, createdAt = state.originalCreatedAt
+                        tags = state.tags, createdAt = state.originalCreatedAt,
+                        entryDateMillis = state.selectedEntryDate
                     )
                 }
                 onSuccess()

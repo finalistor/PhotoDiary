@@ -2,6 +2,29 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/) 规范。
 
+## [1.3] — 2026-05-29
+
+### 修复
+- 修复通过日历点击创建日记时，`createdAt` 存储为午夜零点而非实际创建时间，导致时间显示始终为 00:00 的问题
+- 修复 DatePicker 选择日期后会覆盖真实创建时间戳的问题
+- 修复编辑已有日记时，日期选择器默认显示当天日期而非日记原始日期的问题
+- 修复仅修改文本内容保存时，`createdAt` 被 `selectedEntryDate` 覆盖的问题（现分离 `createdAt` 和 `entryDate` 字段）
+
+### 新增
+- 多套预设主题配色：赤陶（默认）、海洋蓝、森林绿、薰衣草、日落橙、黑白，含浅色/深色自适应
+- 主题选择器：在时间线顶栏调色板图标打开底部面板，点击色块即时切换
+- 主题切换动画：`animateColorAsState` 实现 500ms 平滑颜色过渡
+- 图片加载闪烁占位符（ShimmerPlaceholder），用于缩略图和照片网格
+
+### 变更
+- 导航过渡动画改用 `spring()` 替代 `tween()`，手感更自然
+- 日历月份切换动画改用弹性动画
+- 搜索栏切换添加垂直滑入滑出过渡
+- 列表项添加交错入场动画（标签筛选、标签管理、照片墙）
+- 日历日期单元格添加按压缩放反馈（0.92x + 弹性回弹）
+- FAB 显示/隐藏改用弹性动画
+- 日记预览卡片移除日期时间显示（精简信息密度）
+
 ## [1.2] — 2026-05-27
 
 ### 新增
@@ -46,6 +69,7 @@
 - README.md 项目首页文档
 - MIT 开源许可证
 
+[1.3]: https://github.com/finalistor/PhotoDiary/releases/tag/v1.3
 [1.2]: https://github.com/finalistor/PhotoDiary/releases/tag/v1.2
 [1.1]: https://github.com/finalistor/PhotoDiary/releases/tag/v1.1
 [1.0]: https://github.com/finalistor/PhotoDiary/releases/tag/v1.0

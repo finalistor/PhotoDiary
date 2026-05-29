@@ -2,6 +2,10 @@ package com.photodiary.presentation.photowall
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -31,8 +36,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -118,6 +127,9 @@ fun PhotoWallScreen(
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else {
+                var listVisible by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) { listVisible = true }
+
                 LazyColumn(
                     modifier = Modifier.fillMaxSize()
                         .padding(horizontal = 4.dp),
@@ -150,30 +162,36 @@ fun PhotoWallScreen(
 
                         if (photos != null && photos.isNotEmpty()) {
                             val rows = photos.chunked(3)
-                            items(rows, key = { row ->
+                            itemsIndexed(rows, key = { _, row ->
                                 row.joinToString("_") { "${it.entryId}_${it.filePath.hashCode()}" }
-                            }) { row ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 8.dp)
-                                        .animateItemPlacement(),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            }) { _, row ->
+                                AnimatedVisibility(
+                                    visible = listVisible,
+                                    enter = fadeIn(spring(stiffness = 150f, dampingRatio = 0.6f)) +
+                                        slideInVertically(spring(stiffness = 150f, dampingRatio = 0.6f)) { it / 6 },
+                                    modifier = Modifier.animateItemPlacement()
                                 ) {
-                                    row.forEach { photo ->
-                                        SubcomposeAsyncImage(
-                                            model = File(photo.filePath),
-                                            contentDescription = null,
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .aspectRatio(1f)
-                                                .clip(RoundedCornerShape(4.dp))
-                                                .clickable { onNavigateToDetail(photo.entryId) },
-                                            contentScale = ContentScale.Crop
-                                        )
-                                    }
-                                    repeat(3 - row.size) {
-                                        Spacer(modifier = Modifier.weight(1f))
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 8.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        row.forEach { photo ->
+                                            SubcomposeAsyncImage(
+                                                model = File(photo.filePath),
+                                                contentDescription = null,
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .aspectRatio(1f)
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .clickable { onNavigateToDetail(photo.entryId) },
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        }
+                                        repeat(3 - row.size) {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
                                     }
                                 }
                             }
