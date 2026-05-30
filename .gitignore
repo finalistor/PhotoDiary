@@ -12,3 +12,4 @@ local.properties
 /app/release.jks
 /keystore.properties
 /sentry.properties
+/.codegraph
