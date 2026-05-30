@@ -1,5 +1,6 @@
 package com.photodiary.presentation.entrydetail
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+@Immutable
 data class EntryDetailUiState(
     val entry: DiaryEntry? = null,
     val isLoading: Boolean = true

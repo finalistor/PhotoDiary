@@ -9,9 +9,6 @@ import com.photodiary.data.local.entity.PhotoEntity
 interface PhotoDao {
 
     @Insert
-    suspend fun insertPhoto(photo: PhotoEntity): Long
-
-    @Insert
     suspend fun insertPhotos(photos: List<PhotoEntity>)
 
     @Query("DELETE FROM photos WHERE id = :photoId")

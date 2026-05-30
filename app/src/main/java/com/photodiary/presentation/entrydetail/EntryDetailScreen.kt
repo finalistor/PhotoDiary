@@ -143,34 +143,37 @@ fun EntryDetailScreen(
                                 if (!isSharing) {
                                     isSharing = true
                                     coroutineScope.launch {
-                                        val entry = uiState.entry ?: return@launch
-                                        val photoPath = entry.photos.firstOrNull()?.filePath
-                                        val bitmap = withContext(Dispatchers.IO) {
-                                            ShareImageGenerator.generate(
-                                                entry.title, entry.content, photoPath
-                                            )
-                                        }
-                                        val file = File(context.cacheDir, "share_${entry.id}.jpg")
-                                        withContext(Dispatchers.IO) {
-                                            file.outputStream().use { out ->
-                                                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                                        try {
+                                            val entry = uiState.entry ?: return@launch
+                                            val photoPath = entry.photos.firstOrNull()?.filePath
+                                            val bitmap = withContext(Dispatchers.IO) {
+                                                ShareImageGenerator.generate(
+                                                    entry.title, entry.content, photoPath
+                                                )
                                             }
-                                            bitmap.recycle()
+                                            val file = File(context.cacheDir, "share_${entry.id}.jpg")
+                                            withContext(Dispatchers.IO) {
+                                                file.outputStream().use { out ->
+                                                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                                                }
+                                                bitmap.recycle()
+                                            }
+                                            val uri = FileProvider.getUriForFile(
+                                                context,
+                                                "${context.packageName}.fileprovider",
+                                                file
+                                            )
+                                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                type = "image/jpeg"
+                                                putExtra(Intent.EXTRA_STREAM, uri)
+                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
+                                            context.startActivity(
+                                                Intent.createChooser(shareIntent, "分享日记")
+                                            )
+                                        } finally {
+                                            isSharing = false
                                         }
-                                        val uri = FileProvider.getUriForFile(
-                                            context,
-                                            "${context.packageName}.fileprovider",
-                                            file
-                                        )
-                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                            type = "image/jpeg"
-                                            putExtra(Intent.EXTRA_STREAM, uri)
-                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                        }
-                                        context.startActivity(
-                                            Intent.createChooser(shareIntent, "分享日记")
-                                        )
-                                        isSharing = false
                                     }
                                 }
                             },

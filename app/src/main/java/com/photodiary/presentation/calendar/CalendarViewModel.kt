@@ -20,7 +20,6 @@ data class CalendarUiState(
     val entries: List<DiaryEntry> = emptyList(),
     val calendarDays: List<CalendarDay> = emptyList(),
     val currentMonth: YearMonth = YearMonth.now(),
-    val today: LocalDate = LocalDate.now(),
     val isLoading: Boolean = true
 )
 
@@ -38,7 +37,6 @@ class CalendarViewModel(
                     entries = entries,
                     calendarDays = buildCalendarDays(entries, YearMonth.now(), LocalDate.now()),
                     currentMonth = YearMonth.now(),
-                    today = LocalDate.now(),
                     isLoading = false
                 )
             }

@@ -22,7 +22,6 @@ data class TimelineUiState(
     val entries: List<DiaryEntry> = emptyList(),
     val calendarDays: List<CalendarDay> = emptyList(),
     val currentMonth: YearMonth = YearMonth.now(),
-    val today: LocalDate = LocalDate.now(),
     val isLoading: Boolean = true,
     val isSearching: Boolean = false,
     val searchQuery: String = "",
@@ -43,8 +42,7 @@ class TimelineViewModel(private val repository: DiaryRepository) : ViewModel() {
                 _uiState.value = _uiState.value.copy(
                     entries = entries,
                     isLoading = false,
-                    calendarDays = buildCalendarDays(entries, _uiState.value.currentMonth, LocalDate.now()),
-                    today = LocalDate.now()
+                    calendarDays = buildCalendarDays(entries, _uiState.value.currentMonth, LocalDate.now())
                 )
             }
         }

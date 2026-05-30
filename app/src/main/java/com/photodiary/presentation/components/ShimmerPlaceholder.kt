@@ -15,13 +15,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
+private val shimmerColors = listOf(
+    Color.LightGray.copy(alpha = 0.6f),
+    Color.LightGray.copy(alpha = 0.2f),
+    Color.LightGray.copy(alpha = 0.6f)
+)
+
 @Composable
 fun ShimmerPlaceholder(modifier: Modifier = Modifier) {
-    val shimmerColors = listOf(
-        Color.LightGray.copy(alpha = 0.6f),
-        Color.LightGray.copy(alpha = 0.2f),
-        Color.LightGray.copy(alpha = 0.6f)
-    )
     val transition = rememberInfiniteTransition(label = "shimmer")
     val translateAnim by transition.animateFloat(
         initialValue = 0f,

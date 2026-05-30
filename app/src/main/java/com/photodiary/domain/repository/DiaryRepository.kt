@@ -15,7 +15,7 @@ interface DiaryRepository {
         createdAt: Long = System.currentTimeMillis(),
         entryDateMillis: Long = createdAt
     ): Long
-    suspend fun updateEntry(entry: DiaryEntry): Unit
+    suspend fun updateEntry(entry: DiaryEntry)
     suspend fun updateEntryWithPhotos(
         entryId: Long,
         title: String,
@@ -27,7 +27,7 @@ interface DiaryRepository {
     )
     fun searchEntries(query: String): Flow<List<DiaryEntry>>
     fun getEntriesByTag(tag: String): Flow<List<DiaryEntry>>
-    suspend fun deleteEntry(entryId: Long): Unit
+    suspend fun deleteEntry(entryId: Long)
     fun resolvePhotoPath(fileName: String): String
     suspend fun savePhoto(uri: Uri): String
     suspend fun entryExistsForDate(date: Long, excludeId: Long = 0): Boolean

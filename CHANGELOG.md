@@ -2,6 +2,23 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/) 规范。
 
+## [1.3.1] — 2026-05-30
+
+### 修复
+- 分享按钮在生成图片失败后永久禁用的问题（`try-finally` 确保 `isSharing` 重置）
+- `deleteEntry` 先删文件再删数据库记录，若 DB 操作失败导致文件已丢失不可恢复（改为先删 DB 再删文件）
+
+### 优化
+- EntryDetailUiState 添加 `@Immutable` 注解，提升 Compose 稳定性
+- 编辑器标签列表 `remember` 键移除多余的 `uiState.tags`，避免每次标签切换重建所有 chip
+- 合并 `updateEntryWithPhotos` 中删除旧照片的两次迭代为一次
+- ShimmerPlaceholder 颜色列表提取为顶层常量，避免每帧重新分配
+- 移除未使用的 `PhotoDao.insertPhoto` 方法
+- 移除 CalendarUiState / TimelineUiState 中未使用的 `today` 字段
+- 移除 CreateEditEntryViewModel 中仅赋值不读取的 `initialCreatedAt`
+- 保存失败时 `isSaving = false` 提取到 `finally` 块，消除重复
+- DiaryRepository 接口移除冗余 `: Unit` 返回类型
+
 ## [1.3] — 2026-05-29
 
 ### 修复

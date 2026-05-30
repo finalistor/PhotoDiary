@@ -100,7 +100,7 @@ fun CreateEditEntryScreen(
     var cameraUri by remember { mutableStateOf<Uri?>(null) }
     var dateConflictEvent by remember { mutableStateOf<CreateEditEntryEvent.DateConflictRedirect?>(null) }
 
-    val tagDefs = remember(uiState.customTagNames, uiState.tags) { allTagDefs(uiState.customTagNames) }
+    val tagDefs = remember(uiState.customTagNames) { allTagDefs(uiState.customTagNames) }
 
     val pickMultipleMedia = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 10)

@@ -125,16 +125,12 @@ class DiaryRepositoryImpl(
         val oldFileNames = oldPhotos.map { it.fileName }.toSet()
         val newFileNames = photoFileNames.toSet()
 
-        // Only delete photos that are NOT in the new list
         oldPhotos.forEach { photo ->
             if (photo.fileName !in newFileNames) {
                 val file = File(photosDir, photo.fileName)
                 if (file.exists()) file.delete()
+                photoDao.deletePhoto(photo.id)
             }
-        }
-        // Only remove DB records that are NOT in the new list
-        oldPhotos.filter { it.fileName !in newFileNames }.forEach { photo ->
-            photoDao.deletePhoto(photo.id)
         }
 
         diaryEntryDao.updateEntry(
@@ -167,12 +163,12 @@ class DiaryRepositoryImpl(
     }
 
     override suspend fun deleteEntry(entryId: Long) {
+        diaryEntryDao.deleteEntry(entryId)
         val photos = photoDao.getPhotosForEntry(entryId)
         photos.forEach { photo ->
             val file = File(photosDir, photo.fileName)
             if (file.exists()) file.delete()
         }
-        diaryEntryDao.deleteEntry(entryId)
     }
 
     override fun resolvePhotoPath(fileName: String): String {

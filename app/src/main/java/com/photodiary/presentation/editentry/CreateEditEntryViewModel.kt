@@ -69,7 +69,6 @@ class CreateEditEntryViewModel(
     private var initialTitle: String = ""
     private var initialContent: String = ""
     private var initialTags: List<String> = emptyList()
-    private var initialCreatedAt: Long = 0L
     private var initialSelectedEntryDate: Long = 0L
 
     init {
@@ -89,7 +88,6 @@ class CreateEditEntryViewModel(
                     initialTitle = it.title
                     initialContent = it.content
                     initialTags = it.tags
-                    initialCreatedAt = it.createdAt
                     initialSelectedEntryDate = it.entryDate
                     _uiState.value = _uiState.value.copy(
                         title = it.title,
@@ -304,11 +302,11 @@ class CreateEditEntryViewModel(
                 }
                 onSuccess()
             } catch (e: DateConflictException) {
-                _uiState.value = _uiState.value.copy(isSaving = false)
                 _events.send(CreateEditEntryEvent.ShowError(e.message ?: "该日期已有日记"))
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isSaving = false)
                 _events.send(CreateEditEntryEvent.ShowError("保存失败: ${e.message}"))
+            } finally {
+                _uiState.value = _uiState.value.copy(isSaving = false)
             }
         }
     }
