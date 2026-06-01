@@ -9,6 +9,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.navigation.compose.rememberNavController
 import com.photodiary.navigation.AppNavGraph
 import com.photodiary.ui.theme.PhotoDiaryTheme
@@ -30,7 +31,14 @@ class MainActivity : ComponentActivity() {
             val themePreset by userPreferences.themePresetFlow.collectAsState(
                 initial = ThemePreset.TERRACOTTA
             )
-            PhotoDiaryTheme(themeMode = themeMode, themePreset = themePreset) {
+            val customPrimaryColor by userPreferences.customPrimaryColorFlow.collectAsState(
+                initial = Color(0xFFFF6B8A)
+            )
+            PhotoDiaryTheme(
+                themeMode = themeMode,
+                themePreset = themePreset,
+                customPrimaryColor = customPrimaryColor
+            ) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
                     AppNavGraph(

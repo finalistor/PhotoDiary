@@ -6,5 +6,6 @@ enum class ThemePreset(val displayName: String) {
     FOREST_GREEN("森林绿"),
     LAVENDER("薰衣草"),
     SUNSET_ORANGE("日落橙"),
-    MONOCHROME("黑白")
+    MONOCHROME("黑白"),
+    CUSTOM("自定义")
 }

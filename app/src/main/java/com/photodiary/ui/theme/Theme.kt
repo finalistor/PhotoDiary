@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -17,6 +18,7 @@ import androidx.core.view.WindowCompat
 fun PhotoDiaryTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     themePreset: ThemePreset = ThemePreset.TERRACOTTA,
+    customPrimaryColor: Color = Color.Unspecified,
     content: @Composable () -> Unit
 ) {
     val darkTheme = when (themeMode) {
@@ -24,7 +26,11 @@ fun PhotoDiaryTheme(
         ThemeMode.DARK -> true
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
-    val targetScheme = presetColorScheme(themePreset, darkTheme)
+    val targetScheme = if (themePreset == ThemePreset.CUSTOM && customPrimaryColor != Color.Unspecified) {
+        customColorScheme(customPrimaryColor, darkTheme)
+    } else {
+        presetColorScheme(themePreset, darkTheme)
+    }
 
     val animatedPrimary by animateColorAsState(targetScheme.primary, tween(500))
     val animatedOnPrimary by animateColorAsState(targetScheme.onPrimary, tween(500))

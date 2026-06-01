@@ -1,6 +1,7 @@
 package com.photodiary.data.local
 
 import android.content.Context
+import androidx.compose.ui.graphics.Color
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -36,6 +37,22 @@ class UserPreferences(private val context: Context) {
     suspend fun setThemePreset(preset: ThemePreset) {
         context.dataStore.edit { prefs ->
             prefs[THEME_PRESET_KEY] = preset.name
+        }
+    }
+
+    val customPrimaryColorFlow: Flow<Color> = context.dataStore.data.map { prefs ->
+        val hex = prefs[CUSTOM_PRIMARY_COLOR_KEY] ?: "FFFF6B8A"
+        try {
+            Color(java.lang.Long.parseLong(hex, 16).toInt())
+        } catch (_: Exception) {
+            Color(0xFFFF6B8A)
+        }
+    }.distinctUntilChanged()
+
+    suspend fun setCustomPrimaryColor(color: Color) {
+        context.dataStore.edit { prefs ->
+            val hex = java.lang.Long.toHexString(color.value.toLong() and 0xFFFFFFFFL)
+            prefs[CUSTOM_PRIMARY_COLOR_KEY] = hex.padStart(8, '0').uppercase()
         }
     }
 
@@ -80,6 +97,7 @@ class UserPreferences(private val context: Context) {
     companion object {
         private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
         private val THEME_PRESET_KEY = stringPreferencesKey("theme_preset")
+        private val CUSTOM_PRIMARY_COLOR_KEY = stringPreferencesKey("custom_primary_color")
         private val CUSTOM_TAGS_KEY = stringPreferencesKey("custom_tags")
     }
 }

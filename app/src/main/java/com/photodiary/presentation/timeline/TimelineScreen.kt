@@ -81,6 +81,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -124,6 +125,9 @@ fun TimelineScreen(
     val uiState by viewModel.uiState.collectAsState()
     val themeMode by userPreferences.themeModeFlow.collectAsState(initial = ThemeMode.SYSTEM)
     val themePreset by userPreferences.themePresetFlow.collectAsState(initial = ThemePreset.TERRACOTTA)
+    val customPrimaryColor by userPreferences.customPrimaryColorFlow.collectAsState(
+        initial = Color(0xFFFF6B8A)
+    )
     val customTagNames by userPreferences.customTagsFlow.collectAsState(initial = emptyList())
     val tagColorMap = remember(customTagNames) { buildTagColorMap(customTagNames) }
     val coroutineScope = rememberCoroutineScope()
@@ -422,7 +426,7 @@ fun TimelineScreen(
             text = {
                 Column {
                     Text(
-                        text = "版本 v1.3.1",
+                        text = "版本 v1.4.0",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -456,9 +460,13 @@ fun TimelineScreen(
     if (showThemePicker) {
         ThemePickerSheet(
             currentPreset = themePreset,
+            currentCustomColor = customPrimaryColor,
             onPresetSelected = { preset ->
                 coroutineScope.launch { userPreferences.setThemePreset(preset) }
                 showThemePicker = false
+            },
+            onCustomColorSelected = { color ->
+                coroutineScope.launch { userPreferences.setCustomPrimaryColor(color) }
             },
             onDismiss = { showThemePicker = false }
         )

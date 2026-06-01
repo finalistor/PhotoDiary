@@ -13,6 +13,85 @@ fun presetColorScheme(preset: ThemePreset, darkTheme: Boolean): ColorScheme {
         ThemePreset.LAVENDER -> if (darkTheme) LavenderDark else LavenderLight
         ThemePreset.SUNSET_ORANGE -> if (darkTheme) SunsetOrangeDark else SunsetOrangeLight
         ThemePreset.MONOCHROME -> if (darkTheme) MonochromeDark else MonochromeLight
+        ThemePreset.CUSTOM -> if (darkTheme) TerracottaDark else TerracottaLight
+    }
+}
+
+fun customColorScheme(primaryColor: Color, darkTheme: Boolean): ColorScheme {
+    val (hue, sat, _) = primaryColor.toHsl()
+
+    if (darkTheme) {
+        val primary = primaryColor
+        val onPrimary = Color.Black
+        val primaryContainer = Color.hsl(hue, sat, 0.18f)
+        val onPrimaryContainer = Color.hsl(hue, sat * 0.7f, 0.82f)
+        val secondary = Color.hsl((hue + 30f) % 360f, sat * 0.5f, 0.72f)
+        val onSecondary = Color.Black
+        val secondaryContainer = Color.hsl((hue + 30f) % 360f, sat * 0.4f, 0.18f)
+        val onSecondaryContainer = Color.hsl((hue + 30f) % 360f, sat * 0.3f, 0.85f)
+        val tertiary = Color.hsl((hue + 180f) % 360f, sat * 0.35f, 0.70f)
+        val onTertiary = Color.Black
+        val tertiaryContainer = Color.hsl((hue + 180f) % 360f, sat * 0.3f, 0.18f)
+        val onTertiaryContainer = Color.hsl((hue + 180f) % 360f, sat * 0.25f, 0.82f)
+        val surface = Color.hsl(hue, sat * 0.08f, 0.10f)
+        val onSurface = Color.hsl(hue, sat * 0.04f, 0.90f)
+        val surfaceVariant = Color.hsl(hue, sat * 0.06f, 0.16f)
+        val onSurfaceVariant = Color.hsl(hue, sat * 0.04f, 0.78f)
+        val background = Color.hsl(hue, sat * 0.06f, 0.07f)
+        val onBackground = Color.hsl(hue, sat * 0.04f, 0.90f)
+        val outline = Color.hsl(hue, sat * 0.04f, 0.30f)
+        val outlineVariant = Color.hsl(hue, sat * 0.06f, 0.18f)
+
+        return darkColorScheme(
+            primary = primary, onPrimary = onPrimary,
+            primaryContainer = primaryContainer, onPrimaryContainer = onPrimaryContainer,
+            secondary = secondary, onSecondary = onSecondary,
+            secondaryContainer = secondaryContainer, onSecondaryContainer = onSecondaryContainer,
+            tertiary = tertiary, onTertiary = onTertiary,
+            tertiaryContainer = tertiaryContainer, onTertiaryContainer = onTertiaryContainer,
+            background = background, onBackground = onBackground,
+            surface = surface, onSurface = onSurface,
+            surfaceVariant = surfaceVariant, onSurfaceVariant = onSurfaceVariant,
+            error = ErrorDark, onError = OnErrorDark,
+            errorContainer = ErrorContainerDark, onErrorContainer = OnErrorContainerDark,
+            outline = outline, outlineVariant = outlineVariant
+        )
+    } else {
+        val primary = primaryColor
+        val onPrimary = Color.White
+        val primaryContainer = Color.hsl(hue, sat * 0.25f, 0.92f)
+        val onPrimaryContainer = Color.hsl(hue, sat * 0.9f, 0.18f)
+        val secondary = Color.hsl((hue + 30f) % 360f, sat * 0.45f, 0.42f)
+        val onSecondary = Color.White
+        val secondaryContainer = Color.hsl((hue + 30f) % 360f, sat * 0.15f, 0.92f)
+        val onSecondaryContainer = Color.hsl((hue + 30f) % 360f, sat * 0.6f, 0.22f)
+        val tertiary = Color.hsl((hue + 180f) % 360f, sat * 0.35f, 0.40f)
+        val onTertiary = Color.White
+        val tertiaryContainer = Color.hsl((hue + 180f) % 360f, sat * 0.12f, 0.92f)
+        val onTertiaryContainer = Color.hsl((hue + 180f) % 360f, sat * 0.5f, 0.20f)
+        val surface = Color.hsl(hue, sat * 0.06f, 0.99f)
+        val onSurface = Color.hsl(hue, sat * 0.08f, 0.10f)
+        val surfaceVariant = Color.hsl(hue, sat * 0.08f, 0.94f)
+        val onSurfaceVariant = Color.hsl(hue, sat * 0.05f, 0.32f)
+        val background = Color.hsl(hue, sat * 0.04f, 0.98f)
+        val onBackground = Color.hsl(hue, sat * 0.08f, 0.10f)
+        val outline = Color.hsl(hue, sat * 0.03f, 0.78f)
+        val outlineVariant = Color.hsl(hue, sat * 0.03f, 0.88f)
+
+        return lightColorScheme(
+            primary = primary, onPrimary = onPrimary,
+            primaryContainer = primaryContainer, onPrimaryContainer = onPrimaryContainer,
+            secondary = secondary, onSecondary = onSecondary,
+            secondaryContainer = secondaryContainer, onSecondaryContainer = onSecondaryContainer,
+            tertiary = tertiary, onTertiary = onTertiary,
+            tertiaryContainer = tertiaryContainer, onTertiaryContainer = onTertiaryContainer,
+            background = background, onBackground = onBackground,
+            surface = surface, onSurface = onSurface,
+            surfaceVariant = surfaceVariant, onSurfaceVariant = onSurfaceVariant,
+            error = ErrorLight, onError = OnErrorLight,
+            errorContainer = ErrorContainerLight, onErrorContainer = OnErrorContainerLight,
+            outline = outline, outlineVariant = outlineVariant
+        )
     }
 }
 
