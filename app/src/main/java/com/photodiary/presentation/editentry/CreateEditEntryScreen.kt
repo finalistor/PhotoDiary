@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -99,6 +100,11 @@ fun CreateEditEntryScreen(
     var showCustomTagDialog by remember { mutableStateOf(false) }
     var cameraUri by remember { mutableStateOf<Uri?>(null) }
     var dateConflictEvent by remember { mutableStateOf<CreateEditEntryEvent.DateConflictRedirect?>(null) }
+
+    BackHandler {
+        if (viewModel.hasUnsavedChanges()) showDiscardDialog = true
+        else viewModel.discard()
+    }
 
     val tagDefs = remember(uiState.customTagNames) { allTagDefs(uiState.customTagNames) }
 
@@ -299,7 +305,10 @@ fun CreateEditEntryScreen(
                     )
                 },
                 navigationIcon = {
-                    TextButton(onClick = { showDiscardDialog = true }) {
+                    TextButton(onClick = {
+                        if (viewModel.hasUnsavedChanges()) showDiscardDialog = true
+                        else viewModel.discard()
+                    }) {
                         Text("取消", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },

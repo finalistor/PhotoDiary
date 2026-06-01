@@ -2,10 +2,15 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/) 规范。
 
+## [1.4.1] — 2026-06-01
+
+### 修复
+- 进入编辑模式后即使没有修改日记内容，点击取消或按系统返回键也会弹出"放弃编辑？"对话框的问题
+
 ## [1.4.0] — 2026-06-01
 
 ### 新增
-- 自定义主题色：在选择主题面板中选择"自定义"，通过色调/饱和度/亮度滑块自由选择任意颜色作为主题色
+- 自定义主题色：在选择主题面板中选择"自定义"，通过可视化饱和度/亮度 2D 渐变面板 + 垂直色相彩虹条自由选择任意颜色作为主题色
 - 常用颜色快捷选择：自定义模式下提供 35 种预设颜色格子快速选取
 
 ### 变更
@@ -95,6 +100,7 @@
 - README.md 项目首页文档
 - MIT 开源许可证
 
+[1.4.1]: https://github.com/finalistor/PhotoDiary/releases/tag/v1.4.1
 [1.4.0]: https://github.com/finalistor/PhotoDiary/releases/tag/v1.4.0
 [1.3]: https://github.com/finalistor/PhotoDiary/releases/tag/v1.3
 [1.2]: https://github.com/finalistor/PhotoDiary/releases/tag/v1.2

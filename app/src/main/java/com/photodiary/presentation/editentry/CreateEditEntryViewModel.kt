@@ -102,8 +102,9 @@ class CreateEditEntryViewModel(
                 }
             } else {
                 val date = initialDate ?: System.currentTimeMillis()
+                initialTitle = formatDateTitle(date)
                 _uiState.value = _uiState.value.copy(
-                    title = formatDateTitle(date),
+                    title = initialTitle,
                     selectedEntryDate = date
                 )
                 val existingEntry = repository.getEntryByDate(date)
@@ -208,7 +209,7 @@ class CreateEditEntryViewModel(
         }
     }
 
-    private fun hasUnsavedChanges(): Boolean {
+    fun hasUnsavedChanges(): Boolean {
         val state = _uiState.value
         if (state.isEditing) {
             return state.title != initialTitle ||
@@ -218,7 +219,7 @@ class CreateEditEntryViewModel(
                 state.photoFileNames.toSet() != initialPhotoFileNames
         }
         // New entry: has changes if anything was entered
-        return state.title.isNotBlank() || state.content.isNotBlank() ||
+        return state.title != initialTitle || state.content.isNotBlank() ||
             state.photoFileNames.isNotEmpty() || state.tags.isNotEmpty()
     }
 

@@ -32,8 +32,8 @@ android {
         applicationId = "com.photodiary"
         minSdk = 29
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.4.0"
+        versionCode = 4
+        versionName = "1.4.1"
     }
 
     buildTypes {

@@ -7,6 +7,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -31,7 +34,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Slider
+
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -50,6 +53,15 @@ import androidx.compose.ui.unit.dp
 import com.photodiary.ui.theme.ThemePreset
 import com.photodiary.ui.theme.presetColorScheme
 import com.photodiary.ui.theme.toHsl
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.toArgb
 
 private val presetPalette = listOf(
@@ -132,88 +144,69 @@ fun ThemePickerSheet(
                 exit = fadeOut() + shrinkVertically()
             ) {
                 Column {
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        SaturationLightnessBox(
+                            hue = hue,
+                            saturation = saturation,
+                            lightness = lightness,
+                            onColorChange = { s, l ->
+                                saturation = s
+                                lightness = l
+                                customColor = Color.hsl(hue, saturation, lightness)
+                            },
+                            modifier = Modifier
+                                .height(160.dp)
+                                .aspectRatio(1f)
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        HueBar(
+                            hue = hue,
+                            onHueChange = { h ->
+                                hue = h
+                                customColor = Color.hsl(hue, saturation, lightness)
+                            },
+                            modifier = Modifier
+                                .width(24.dp)
+                                .height(160.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(32.dp)
                                 .clip(CircleShape)
                                 .background(customColor)
                                 .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                "预览颜色",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                formatHexColor(customColor),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            formatHexColor(customColor),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Text("色调", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Slider(
-                        value = hue,
-                        onValueChange = {
-                            hue = it
-                            customColor = Color.hsl(hue, saturation, lightness)
-                        },
-                        valueRange = 0f..360f,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text("饱和度", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Slider(
-                        value = saturation,
-                        onValueChange = {
-                            saturation = it
-                            customColor = Color.hsl(hue, saturation, lightness)
-                        },
-                        valueRange = 0f..1f,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text("亮度", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Slider(
-                        value = lightness,
-                        onValueChange = {
-                            lightness = it
-                            customColor = Color.hsl(hue, saturation, lightness)
-                        },
-                        valueRange = 0f..1f,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     Text("常用颜色", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         presetPalette.forEach { color ->
                             Box(
                                 modifier = Modifier
-                                    .size(28.dp)
+                                    .size(24.dp)
                                     .clip(CircleShape)
                                     .background(color)
                                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
@@ -306,5 +299,130 @@ private fun ThemeSwatch(
                     else MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
         )
+    }
+}
+
+@Composable
+private fun SaturationLightnessBox(
+    hue: Float,
+    saturation: Float,
+    lightness: Float,
+    onColorChange: (Float, Float) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(12.dp)
+    val outlineColor = MaterialTheme.colorScheme.outlineVariant
+
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .border(1.dp, outlineColor, shape)
+            .pointerInput(hue) {
+                detectTapGestures { offset ->
+                    val s = (offset.x / size.width).coerceIn(0f, 1f)
+                    val l = 1f - (offset.y / size.height).coerceIn(0f, 1f)
+                    onColorChange(s, l)
+                }
+            }
+            .pointerInput(hue) {
+                detectDragGestures { change, _ ->
+                    change.consume()
+                    val s = (change.position.x / size.width).coerceIn(0f, 1f)
+                    val l = 1f - (change.position.y / size.height).coerceIn(0f, 1f)
+                    onColorChange(s, l)
+                }
+            }
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val step = 2
+            for (y in 0 until h.toInt() step step) {
+                val light = 1f - (y.toFloat() / h)
+                drawRect(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.hsl(hue, 0f, light),
+                            Color.hsl(hue, 1f, light)
+                        ),
+                        startX = 0f,
+                        endX = w
+                    ),
+                    topLeft = Offset(0f, y.toFloat()),
+                    size = Size(w, step.toFloat())
+                )
+            }
+
+            val cx = saturation * size.width
+            val cy = (1f - lightness) * size.height
+            val r = 7.dp.toPx()
+            drawCircle(Color.Black.copy(alpha = 0.3f), r + 2.dp.toPx(), Offset(cx, cy))
+            drawCircle(
+                Color.White, r, Offset(cx, cy),
+                style = Stroke(2.5.dp.toPx())
+            )
+        }
+    }
+}
+
+@Composable
+private fun HueBar(
+    hue: Float,
+    onHueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(12.dp)
+    val outlineColor = MaterialTheme.colorScheme.outlineVariant
+
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .border(1.dp, outlineColor, shape)
+            .pointerInput(Unit) {
+                detectTapGestures { offset ->
+                    val h = (offset.y / size.height).coerceIn(0f, 1f) * 360f
+                    onHueChange(h)
+                }
+            }
+            .pointerInput(Unit) {
+                detectDragGestures { change, _ ->
+                    change.consume()
+                    val h = (change.position.y / size.height).coerceIn(0f, 1f) * 360f
+                    onHueChange(h)
+                }
+            }
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFFF0000),
+                        Color(0xFFFFFF00),
+                        Color(0xFF00FF00),
+                        Color(0xFF00FFFF),
+                        Color(0xFF0000FF),
+                        Color(0xFFFF00FF),
+                        Color(0xFFFF0000)
+                    ),
+                    startY = 0f,
+                    endY = size.height
+                ),
+                size = size
+            )
+
+            val cy = (hue / 360f) * size.height
+            drawLine(
+                color = Color.Black.copy(alpha = 0.4f),
+                start = Offset(0f, cy),
+                end = Offset(size.width, cy),
+                strokeWidth = 6.dp.toPx()
+            )
+            drawLine(
+                color = Color.White,
+                start = Offset(1.dp.toPx(), cy),
+                end = Offset(size.width - 1.dp.toPx(), cy),
+                strokeWidth = 4.dp.toPx()
+            )
+        }
     }
 }
