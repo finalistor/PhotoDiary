@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import com.photodiary.ui.theme.ThemePreset
 import com.photodiary.ui.theme.presetColorScheme
 import com.photodiary.ui.theme.toHsl
+import androidx.compose.ui.graphics.toArgb
 
 private val presetPalette = listOf(
     Color(0xFFE53935), Color(0xFFD81B60), Color(0xFFC2185B), Color(0xFF8E24AA),
@@ -251,7 +252,7 @@ fun ThemePickerSheet(
 }
 
 private fun formatHexColor(color: Color): String {
-    val hex = java.lang.Long.toHexString(color.value.toLong() and 0xFFFFFFFFL).uppercase()
+    val hex = java.lang.Integer.toHexString(color.toArgb()).uppercase()
     return "#${hex.padStart(8, '0')}"
 }
 

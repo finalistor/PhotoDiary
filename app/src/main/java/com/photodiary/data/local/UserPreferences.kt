@@ -2,6 +2,7 @@ package com.photodiary.data.local
 
 import android.content.Context
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -51,7 +52,7 @@ class UserPreferences(private val context: Context) {
 
     suspend fun setCustomPrimaryColor(color: Color) {
         context.dataStore.edit { prefs ->
-            val hex = java.lang.Long.toHexString(color.value.toLong() and 0xFFFFFFFFL)
+            val hex = java.lang.Integer.toHexString(color.toArgb())
             prefs[CUSTOM_PRIMARY_COLOR_KEY] = hex.padStart(8, '0').uppercase()
         }
     }
